@@ -6,4 +6,4 @@ authors = ["Chris West (Faux) <git@goeswhere.com>"]
 [dependencies]
 byteorder = "1.1.0"
 error-chain = "0.10.0"
-
+zstd = "0.4.14"

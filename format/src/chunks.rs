@@ -48,7 +48,7 @@ where
 mod tests {
     use std::io;
     use std::io::Read;
-    use stream::ChunkReader;
+    use chunks::ChunkReader;
 
     #[test]
     fn cursors() {
