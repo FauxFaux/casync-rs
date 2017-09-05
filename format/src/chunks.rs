@@ -15,7 +15,7 @@ where
 {
     pub fn new(mut from: F) -> Result<Self> {
         Ok(ChunkReader {
-            inner: match from()? {
+            inner: match from().chain_err(|| "trying to fetch initial chunk")? {
                 Some(reader) => reader,
                 None => bail!("there must be at least one chunk"),
             },

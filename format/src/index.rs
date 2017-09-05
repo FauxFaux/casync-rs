@@ -1,10 +1,12 @@
 use std;
 use std::fmt;
+use std::fs;
 use std::io;
 use std::io::Read;
 
 use errors::*;
 use format;
+use zstd;
 
 use byteorder::{ReadBytesExt, LittleEndian};
 
@@ -45,7 +47,18 @@ impl Chunk {
         for byte in &self.id {
             ret.push_str(format!("{:02x}", byte).as_str());
         }
+        ret.push_str(".cacnk");
         ret
+    }
+
+    pub fn open_from(&self, castr_path: &str) -> Result<zstd::Decoder<fs::File>> {
+        zstd::Decoder::new(fs::File::open(format!(
+            "{}/{}",
+            castr_path,
+            self.format_id(),
+        ))
+            .chain_err(|| format!("opening chunk {}", self.format_id()))?)
+            .chain_err(|| format!("initialising decoding of chunk {}", self.format_id()))
     }
 }
 

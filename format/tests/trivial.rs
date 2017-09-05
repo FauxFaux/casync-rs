@@ -1,5 +1,4 @@
 extern crate casync_format;
-extern crate zstd;
 
 use std::io;
 use std::fs;
@@ -32,19 +31,8 @@ fn load_nums() {
 
     let mut it = v.into_iter();
 
-    let local_store_root = "tests/data/nums.castr";
-
     let reader = casync_format::ChunkReader::new(|| {
-        Ok(match it.next() {
-            None => None,
-            Some(chunk) => {
-                Some(zstd::Decoder::new(fs::File::open(format!(
-                    "{}/{}.cacnk",
-                    local_store_root,
-                    chunk.format_id()
-                ))?)?)
-            }
-        })
+        Ok(it.next().map(|chunk| chunk.open_from("tests/data/nums.castr")?))
     }).unwrap();
 
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
