@@ -34,7 +34,7 @@ fn load_nums() {
 
     let local_store_root = "tests/data/nums.castr";
 
-    let mut reader = casync_format::ChunkReader::new(|| {
+    let reader = casync_format::ChunkReader::new(|| {
         Ok(match it.next() {
             None => None,
             Some(chunk) => {
@@ -49,7 +49,7 @@ fn load_nums() {
 
 //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
-    casync_format::read_stream(reader, |path, entry, mut data| {
+    casync_format::read_stream(reader, |path, entry, data| {
         println!("{}, {:?}", path.len(), entry);
         let mut buf = vec![];
         if data.is_some() {

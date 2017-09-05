@@ -67,8 +67,8 @@ where
         "file magic number doesn't look like an index"
     );
 
-    let feature_flags = leu64(&mut from)?;
-    let chunk_size = ChunkSize::new(leu64(&mut from)?, leu64(&mut from)?, leu64(&mut from)?)?;
+    leu64(&mut from)?; // feature_flags
+    ChunkSize::new(leu64(&mut from)?, leu64(&mut from)?, leu64(&mut from)?)?; // chunk_size
 
     ensure!(
         std::u64::MAX == leu64(&mut from)?,
