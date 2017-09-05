@@ -32,7 +32,9 @@ fn load_nums() {
     let mut it = v.into_iter();
 
     let reader = casync_format::ChunkReader::new(|| {
-        Ok(it.next().map(|chunk| chunk.open_from("tests/data/nums.castr")?))
+        Ok(it.next().map(
+            |chunk| chunk.open_from("tests/data/nums.castr")?,
+        ))
     }).unwrap();
 
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();

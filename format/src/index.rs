@@ -56,9 +56,11 @@ impl Chunk {
             "{}/{}",
             castr_path,
             self.format_id(),
-        ))
-            .chain_err(|| format!("opening chunk {}", self.format_id()))?)
-            .chain_err(|| format!("initialising decoding of chunk {}", self.format_id()))
+        )).chain_err(
+            || format!("opening chunk {}", self.format_id()),
+        )?).chain_err(|| {
+            format!("initialising decoding of chunk {}", self.format_id())
+        })
     }
 }
 
