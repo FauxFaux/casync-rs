@@ -4,4 +4,5 @@ version = "0.1.0"
 authors = ["Chris West (Faux) <git@goeswhere.com>"]
 
 [dependencies]
+byteorder = "1.1.0"
 error-chain = "0.10.0"
