@@ -11,5 +11,7 @@ fn load_index() {
         Ok(())
     }).unwrap();
 
-    println!("{:?}", v);
+    for chunk in v {
+        println!("{:?}", chunk)
+    }
 }

@@ -1,9 +1,13 @@
 use std;
+use std::fmt;
 use std::io;
 use std::io::Read;
+
 use errors::*;
 use format;
+
 use byteorder::{ReadBytesExt, LittleEndian};
+use hex_slice::AsHex;
 
 struct ChunkSize {
     min: u64,
@@ -20,10 +24,15 @@ impl ChunkSize {
     }
 }
 
-#[derive(Debug)]
 pub struct Chunk {
     offset: u64,
     id: format::ChunkId,
+}
+
+impl fmt::Debug for Chunk {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Chunk {{ off: x{:x}, id: {:x}", self.offset, self.id.as_hex())
+    }
 }
 
 pub fn read_index<R: Read, F>(mut from: R, mut into: F) -> Result<()>
