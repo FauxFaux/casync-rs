@@ -87,7 +87,10 @@ where
         "table size should be u64::MAX"
     );
 
-    ensure!(IndexMagic::Table == IndexMagic::from(leu64(&mut from)?)?, "table magic missing");
+    ensure!(
+        IndexMagic::Table == IndexMagic::from(leu64(&mut from)?)?,
+        "table magic missing"
+    );
 
     loop {
         let offset = leu64(&mut from)?;

@@ -1,5 +1,6 @@
 use std::io;
 use std::io::Read;
+use std::fmt;
 
 use errors::*;
 use format::StreamMagic;
@@ -8,7 +9,7 @@ use byteorder::{ReadBytesExt, LittleEndian};
 
 const HEADER_TAG_LEN: u64 = 16;
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Entry {
     pub mode: u64,
     pub uid: u64,
@@ -16,6 +17,37 @@ pub struct Entry {
     pub mtime: u64,
     pub user_name: Option<Vec<u8>>,
     pub group_name: Option<Vec<u8>>,
+}
+
+impl fmt::Debug for Entry {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Entry {{ 0o{:o}{} u:{} g:{} user: {:?} group: {:?} }}",
+            self.mode & 0o7777,
+            if self.is_dir() {
+                "d"
+            } else if self.is_reg() {
+                "r"
+            } else {
+                " XXX"
+            },
+            self.uid,
+            self.gid,
+            self.user_name,
+            self.group_name
+        )
+    }
+}
+
+impl Entry {
+    pub fn is_dir(&self) -> bool {
+        0o040000 == (self.mode & 0o170000)
+    }
+
+    pub fn is_reg(&self) -> bool {
+        0o100000 == (self.mode & 0o170000)
+    }
 }
 
 pub fn read_stream<R: Read, F>(mut from: R, mut into: F) -> Result<()>

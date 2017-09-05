@@ -68,13 +68,28 @@ fn mtree(castr: &str, caidx: &str) -> Result<()> {
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
     casync_format::read_stream(reader, |path, entry, data| {
-        println!("{}, {:?}", path.len(), entry);
+        println!("{}, {:?}", utf8_path(path)?, entry);
         let mut buf = vec![];
         if data.is_some() {
             data.unwrap().read_to_end(&mut buf)?;
         }
         Ok(())
     }).chain_err(|| format!("reading stream of index {}", caidx))
+}
+
+fn utf8_path(from: &[Vec<u8>]) -> std::result::Result<String, ::std::string::FromUtf8Error> {
+    let mut ret = String::new();
+    for component in from {
+        ret.push_str(String::from_utf8(component.clone())?.as_str());
+        ret.push_str(" // ");
+    }
+
+    if !ret.is_empty() {
+        let waste = ret.len() - 4;
+        ret.truncate(waste);
+    }
+
+    Ok(ret)
 }
 
 quick_main!(run);
