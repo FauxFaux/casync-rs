@@ -20,7 +20,8 @@ pub struct Entry {
 
 pub fn read_stream<R: Read, F>(mut from: R, mut into: F) -> Result<()>
 where
-    F: FnMut(&[Vec<u8>], Entry, Option<io::Take<&mut R>>) -> Result<()> {
+    F: FnMut(&[Vec<u8>], Entry, Option<io::Take<&mut R>>) -> Result<()>,
+{
     let mut current: Option<Entry> = None;
     // State machine here is maintained using the depth of path;
     // when we see a goodbye and that leaves the path array empty,
@@ -30,7 +31,7 @@ where
     loop {
         let header_size = leu64(&mut from)?;
         let header_format = leu64(&mut from)?;
-//        println!("{:x}", header_format);
+        //        println!("{:x}", header_format);
         match header_format {
             format::ENTRY => {
                 ensure!(
@@ -55,16 +56,12 @@ where
                 current = Some(entry);
             }
             format::USER => {
-                current
-                    .as_mut()
-                    .ok_or("user without entry")?
-                    .user_name = Some(read_string_record(header_size, &mut from)?);
+                current.as_mut().ok_or("user without entry")?.user_name =
+                    Some(read_string_record(header_size, &mut from)?);
             }
             format::GROUP => {
-                current
-                    .as_mut()
-                    .ok_or("group without entry")?
-                    .group_name = Some(read_string_record(header_size, &mut from)?);
+                current.as_mut().ok_or("group without entry")?.group_name =
+                    Some(read_string_record(header_size, &mut from)?);
             }
             format::FILENAME => {
                 into(&path, current.ok_or("filename without entry")?, None)?;
@@ -73,8 +70,16 @@ where
                 current = None;
             }
             format::PAYLOAD => {
-                ensure!(header_size >= HEADER_TAG_LEN, "data <0 bytes long: {}", header_size);
-                into(&path, current.ok_or("payload without entry")?, Some((&mut from).take(header_size - HEADER_TAG_LEN)))?;
+                ensure!(
+                    header_size >= HEADER_TAG_LEN,
+                    "data <0 bytes long: {}",
+                    header_size
+                );
+                into(
+                    &path,
+                    current.ok_or("payload without entry")?,
+                    Some((&mut from).take(header_size - HEADER_TAG_LEN)),
+                )?;
                 current = None;
             }
             format::GOODBYE => {

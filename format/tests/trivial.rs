@@ -47,7 +47,7 @@ fn load_nums() {
         })
     }).unwrap();
 
-//    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
+    //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
     casync_format::read_stream(reader, |path, entry, data| {
         println!("{}, {:?}", path.len(), entry);
