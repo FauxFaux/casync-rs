@@ -59,7 +59,7 @@ fn run() -> Result<()> {
                 println!("commit {}{}", ref_prefix, nth);
 
                 // TODO: recover dates or even authors
-                println!("committer casync-rs <solo-casync-rs@goeswhere.com> now");
+                println!("committer casync-rs <solo-casync-rs@goeswhere.com> 0 +0000");
 
                 // commit message: 0 bytes
                 println!("data 0");
@@ -115,7 +115,7 @@ fn fast_export(castr: &str, caidx: &str) -> Result<()> {
         ensure!(entry.is_reg(), "only directories and regular files are supported");
         let executable = 0o100 == (entry.mode & 0o100);
 
-        println!("M {} inline {}", if executable { "100755" } else { "10644" }, utf8_path(path)?);
+        println!("M {} inline {}", if executable { "100755" } else { "100644" }, utf8_path(path)?);
         println!("data {}", data.limit());
         io::copy(&mut data, &mut io::stdout())?;
 
