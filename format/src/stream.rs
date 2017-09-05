@@ -18,17 +18,21 @@ pub struct Entry {
     pub mtime: u64,
     pub user_name: Option<Vec<u8>>,
     pub group_name: Option<Vec<u8>>,
-    pub file_name: Option<Vec<u8>>,
 }
 
 pub fn read_stream<R: Read, F>(mut from: R, mut into: F) -> Result<()>
 where
-    F: FnMut(Entry, io::Take<&mut R>) -> Result<()> {
+    F: FnMut(&[Vec<u8>], Entry, Option<io::Take<&mut R>>) -> Result<()> {
     let mut current: Option<Entry> = None;
+    // State machine here is maintained using the depth of path;
+    // when we see a goodbye and that leaves the path array empty,
+    // we're at the end of the archive
+
+    let mut path = vec![];
     loop {
         let header_size = leu64(&mut from)?;
         let header_format = leu64(&mut from)?;
-        println!("{:x}", header_format);
+//        println!("{:x}", header_format);
         match header_format {
             format::ENTRY => {
                 ensure!(
@@ -65,19 +69,23 @@ where
                     .group_name = Some(read_string_record(header_size, &mut from)?);
             }
             format::FILENAME => {
-                current
-                    .as_mut()
-                    .ok_or("user without entry")?
-                    .file_name = Some(read_data_record(header_size, &mut from)?);
+                into(&path, current.ok_or("filename without entry")?, None)?;
+
+                path.push(read_data_record(header_size, &mut from)?);
+                current = None;
             }
             format::PAYLOAD => {
                 ensure!(header_size >= HEADER_TAG_LEN, "data <0 bytes long: {}", header_size);
-                into(current.ok_or("payload without entry")?, (&mut from).take(header_size - HEADER_TAG_LEN))?;
+                into(&path, current.ok_or("payload without entry")?, Some((&mut from).take(header_size - HEADER_TAG_LEN)))?;
                 current = None;
             }
             format::GOODBYE => {
                 // TODO: all kinds of tailing records
-                return Ok(());
+                read_data_record(header_size, &mut from)?;
+                path.pop();
+                if path.is_empty() {
+                    return Ok(());
+                }
             }
             _ => bail!("unrecognised header format: 0x{:016x}", header_format),
         }
