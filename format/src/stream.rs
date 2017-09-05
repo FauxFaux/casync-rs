@@ -2,7 +2,7 @@ use std::io;
 use std::io::Read;
 
 use errors::*;
-use format;
+use format::StreamMagic;
 
 use byteorder::{ReadBytesExt, LittleEndian};
 
@@ -30,10 +30,10 @@ where
     let mut path = vec![];
     loop {
         let header_size = leu64(&mut from)?;
-        let header_format = leu64(&mut from)?;
-        println!("{:x}", header_format);
+        let header_format = StreamMagic::from(leu64(&mut from)?)?;
+        println!("header: {:?}", header_format);
         match header_format {
-            format::ENTRY => {
+            StreamMagic::Entry => {
                 ensure!(
                     (8 * 6) + HEADER_TAG_LEN == header_size,
                     "incorrect ENTRY length; not supported by us: 48 != {}",
@@ -55,21 +55,21 @@ where
 
                 current = Some(entry);
             }
-            format::USER => {
+            StreamMagic::User => {
                 current.as_mut().ok_or("user without entry")?.user_name =
                     Some(read_string_record(header_size, &mut from)?);
             }
-            format::GROUP => {
+            StreamMagic::Group => {
                 current.as_mut().ok_or("group without entry")?.group_name =
                     Some(read_string_record(header_size, &mut from)?);
             }
-            format::FILENAME => {
+            StreamMagic::Filename => {
                 into(&path, current.ok_or("filename without entry")?, None)?;
 
                 path.push(read_data_record(header_size, &mut from)?);
                 current = None;
             }
-            format::PAYLOAD => {
+            StreamMagic::Payload => {
                 ensure!(
                     header_size >= HEADER_TAG_LEN,
                     "data <0 bytes long: {}",
@@ -82,7 +82,7 @@ where
                 )?;
                 current = None;
             }
-            format::GOODBYE => {
+            StreamMagic::Goodbye => {
                 // TODO: all kinds of tailing records
                 read_data_record(header_size, &mut from)?;
                 path.pop();
@@ -90,7 +90,6 @@ where
                     return Ok(());
                 }
             }
-            _ => bail!("unrecognised header format: 0x{:016x}", header_format),
         }
     }
 }

@@ -5,7 +5,8 @@ use std::io;
 use std::io::Read;
 
 use errors::*;
-use format;
+use format::ChunkId;
+use format::IndexMagic;
 use zstd;
 
 use byteorder::{ReadBytesExt, LittleEndian};
@@ -27,7 +28,7 @@ impl ChunkSize {
 
 pub struct Chunk {
     offset: u64,
-    id: format::ChunkId,
+    id: ChunkId,
 }
 
 impl fmt::Debug for Chunk {
@@ -74,7 +75,7 @@ where
     }
 
     ensure!(
-        format::INDEX == leu64(&mut from)?,
+        IndexMagic::Index == IndexMagic::from(leu64(&mut from)?)?,
         "file magic number doesn't look like an index"
     );
 
@@ -86,11 +87,11 @@ where
         "table size should be u64::MAX"
     );
 
-    ensure!(format::TABLE == leu64(&mut from)?, "table magic missing");
+    ensure!(IndexMagic::Table == IndexMagic::from(leu64(&mut from)?)?, "table magic missing");
 
     loop {
         let offset = leu64(&mut from)?;
-        let mut id = format::ChunkId::default();
+        let mut id = ChunkId::default();
         from.read_exact(&mut id)?;
 
         // TODO: other conditions to validate we're actually at the end
