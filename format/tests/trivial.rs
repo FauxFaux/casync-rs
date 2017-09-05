@@ -33,7 +33,7 @@ fn load_nums() {
 
     let reader = casync_format::ChunkReader::new(|| {
         Ok(it.next().map(
-            |chunk| chunk.open_from("tests/data/nums.castr")?,
+            |chunk| chunk.open_from("tests/data/nums.castr").unwrap(),
         ))
     }).unwrap();
 
