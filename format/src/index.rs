@@ -7,7 +7,6 @@ use errors::*;
 use format;
 
 use byteorder::{ReadBytesExt, LittleEndian};
-use hex_slice::AsHex;
 
 struct ChunkSize {
     min: u64,
@@ -33,10 +32,20 @@ impl fmt::Debug for Chunk {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "Chunk {{ off: x{:x}, id: {:x}",
+            "Chunk {{ off: x{:x}, id: {}",
             self.offset,
-            self.id.as_hex()
+            self.format_id()
         )
+    }
+}
+
+impl Chunk {
+    pub fn format_id(&self) -> String {
+        let mut ret = format!("{:02x}{:02x}/", self.id[0], self.id[1]);
+        for byte in &self.id {
+            ret.push_str(format!("{:02x}", byte).as_str());
+        }
+        ret
     }
 }
 

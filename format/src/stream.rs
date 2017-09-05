@@ -3,7 +3,7 @@ use std::io::Read;
 
 use errors::*;
 
-struct ChunkReader<R, F> {
+pub struct ChunkReader<R, F> {
     inner: R,
     next: F,
 }
@@ -13,7 +13,7 @@ impl<R: Read, F> ChunkReader<R, F>
 where
     F: FnMut() -> io::Result<Option<R>>,
 {
-    fn new(mut from: F) -> Result<Self> {
+    pub fn new(mut from: F) -> Result<Self> {
         Ok(ChunkReader {
             inner: match from()? {
                 Some(reader) => reader,
