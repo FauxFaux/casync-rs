@@ -10,11 +10,25 @@ use byteorder::{ReadBytesExt, LittleEndian};
 
 const HEADER_TAG_LEN: u64 = 16;
 
-pub fn read_stream<R: Read>(mut from: R) -> Result<()> {
+#[derive(Debug, Default)]
+pub struct Entry {
+    pub mode: u64,
+    pub uid: u64,
+    pub gid: u64,
+    pub mtime: u64,
+    pub user_name: Option<Vec<u8>>,
+    pub group_name: Option<Vec<u8>>,
+    pub file_name: Option<Vec<u8>>,
+}
+
+pub fn read_stream<R: Read, F>(mut from: R, mut into: F) -> Result<()>
+where
+    F: FnMut(Entry, io::Take<&mut R>) -> Result<()> {
+    let mut current: Option<Entry> = None;
     loop {
         let header_size = leu64(&mut from)?;
         let header_format = leu64(&mut from)?;
-
+        println!("{:x}", header_format);
         match header_format {
             format::ENTRY => {
                 ensure!(
@@ -22,27 +36,44 @@ pub fn read_stream<R: Read>(mut from: R) -> Result<()> {
                     "incorrect ENTRY length; not supported by us: 48 != {}",
                     header_size
                 );
+
+                ensure!(current.is_none(), "entry found without data");
+                let mut entry = Entry::default();
+
                 leu64(&mut from)?; // feature_flags
-                leu64(&mut from)?; // mode
+
+                entry.mode = leu64(&mut from)?;
+
                 leu64(&mut from)?; // flags
-                leu64(&mut from)?; // uid
-                leu64(&mut from)?; // gid
-                leu64(&mut from)?; // mtime
+
+                entry.uid = leu64(&mut from)?;
+                entry.gid = leu64(&mut from)?;
+                entry.mtime = leu64(&mut from)?;
+
+                current = Some(entry);
             }
             format::USER => {
-                read_string_record(header_size, &mut from)?; // name
+                current
+                    .as_mut()
+                    .ok_or("user without entry")?
+                    .user_name = Some(read_string_record(header_size, &mut from)?);
             }
             format::GROUP => {
-                read_string_record(header_size, &mut from)?; // name
+                current
+                    .as_mut()
+                    .ok_or("group without entry")?
+                    .group_name = Some(read_string_record(header_size, &mut from)?);
             }
             format::FILENAME => {
-                println!(
-                    "filename: {}",
-                    String::from_utf8(read_data_record(header_size, &mut from)?)?
-                ); // name
+                current
+                    .as_mut()
+                    .ok_or("user without entry")?
+                    .file_name = Some(read_data_record(header_size, &mut from)?);
             }
             format::PAYLOAD => {
-                println!("data: {}", read_data_record(header_size, &mut from)?.len()); // data (huge?)
+                ensure!(header_size >= HEADER_TAG_LEN, "data <0 bytes long: {}", header_size);
+                into(current.ok_or("payload without entry")?, (&mut from).take(header_size - HEADER_TAG_LEN))?;
+                current = None;
             }
             format::GOODBYE => {
                 // TODO: all kinds of tailing records
@@ -55,7 +86,7 @@ pub fn read_stream<R: Read>(mut from: R) -> Result<()> {
 
 fn read_string_record<R: Read>(header_size: u64, from: R) -> Result<Vec<u8>> {
     ensure!(
-        header_size < 256 + HEADER_TAG_LEN && header_size >= HEADER_TAG_LEN,
+        header_size < 256 + HEADER_TAG_LEN,
         "refusing to support names over ~255 characters, was: {}",
         header_size
     );
@@ -63,6 +94,12 @@ fn read_string_record<R: Read>(header_size: u64, from: R) -> Result<Vec<u8>> {
 }
 
 fn read_data_record<R: Read>(header_size: u64, mut from: R) -> Result<Vec<u8>> {
+    ensure!(
+        header_size >= HEADER_TAG_LEN,
+        "header missing / size wrong: {}",
+        header_size
+    );
+
     let mut buf = vec![0u8; (header_size - HEADER_TAG_LEN) as usize];
     from.read_exact(&mut buf)?;
     Ok(buf)

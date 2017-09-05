@@ -47,5 +47,12 @@ fn load_nums() {
         })
     }).unwrap();
 
-    casync_format::read_stream(reader).unwrap();
+//    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
+
+    casync_format::read_stream(reader, |entry, mut data| {
+        println!("{:?}", entry);
+        let mut buf = vec![];
+        data.read_to_end(&mut buf)?;
+        Ok(())
+    }).unwrap();
 }
