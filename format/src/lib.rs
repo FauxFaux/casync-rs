@@ -13,4 +13,5 @@ pub use errors::*;
 
 pub use chunks::ChunkReader;
 pub use index::read_index;
+pub use index::Chunk;
 pub use stream::read_stream;

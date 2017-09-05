@@ -31,7 +31,7 @@ where
     loop {
         let header_size = leu64(&mut from)?;
         let header_format = leu64(&mut from)?;
-        //        println!("{:x}", header_format);
+        println!("{:x}", header_format);
         match header_format {
             format::ENTRY => {
                 ensure!(

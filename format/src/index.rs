@@ -51,16 +51,12 @@ impl Chunk {
         ret
     }
 
-    pub fn open_from(&self, castr_path: &str) -> Result<zstd::Decoder<fs::File>> {
+    pub fn open_from(&self, castr_path: &str) -> io::Result<zstd::Decoder<fs::File>> {
         zstd::Decoder::new(fs::File::open(format!(
             "{}/{}",
             castr_path,
             self.format_id(),
-        )).chain_err(
-            || format!("opening chunk {}", self.format_id()),
-        )?).chain_err(|| {
-            format!("initialising decoding of chunk {}", self.format_id())
-        })
+        ))?)
     }
 }
 
