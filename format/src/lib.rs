@@ -6,6 +6,7 @@ extern crate hex_slice;
 mod errors;
 mod format;
 mod index;
+mod stream;
 
 pub use errors::*;
 

@@ -31,7 +31,12 @@ pub struct Chunk {
 
 impl fmt::Debug for Chunk {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Chunk {{ off: x{:x}, id: {:x}", self.offset, self.id.as_hex())
+        write!(
+            f,
+            "Chunk {{ off: x{:x}, id: {:x}",
+            self.offset,
+            self.id.as_hex()
+        )
     }
 }
 
