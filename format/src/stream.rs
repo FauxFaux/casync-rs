@@ -63,7 +63,7 @@ where
     loop {
         let header_size = leu64(&mut from)?;
         let header_format = StreamMagic::from(leu64(&mut from)?)?;
-        println!("header: {:?}", header_format);
+        //println!("header: {:?}", header_format);
         match header_format {
             StreamMagic::Entry => {
                 ensure!(
@@ -96,9 +96,19 @@ where
                     Some(read_string_record(header_size, &mut from)?);
             }
             StreamMagic::Filename => {
-                into(&path, current.ok_or("filename without entry")?, None)?;
+                let new_name = read_data_record(header_size, &mut from)?;
 
-                path.push(read_data_record(header_size, &mut from)?);
+                if let Some(current) = current {
+                    // if we're currently in an Entry, then a new filename indicates a new,
+                    // nested archive, which continues until the Goodbye pops it off the end
+                    into(&path, current, None)?;
+                    path.push(new_name);
+                } else {
+                    // if we're not in an entry, we're just updating the current filename
+                    let last_element = path.len() - 1;
+                    path[last_element] = new_name;
+                }
+
                 current = None;
             }
             StreamMagic::Payload => {
