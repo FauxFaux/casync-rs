@@ -47,6 +47,5 @@ fn load_nums() {
         })
     }).unwrap();
 
-    let mut buf = vec![];
-    assert_eq!(49207, reader.read_to_end(&mut buf).unwrap());
+    casync_format::read_stream(reader).unwrap();
 }
