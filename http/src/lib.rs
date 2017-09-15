@@ -1,20 +1,15 @@
 extern crate casync_format;
 #[macro_use]
 extern crate error_chain;
-extern crate futures;
-extern crate hyper;
+extern crate reqwest;
 extern crate tempfile_fast;
 
-use std::fs;
 use std::io;
 use std::path;
 
-use std::io::Write;
-
 use casync_format::Chunk;
-use futures::{Future, Stream};
-use hyper::Client;
-use hyper::client::Connect;
+use reqwest::Client;
+use reqwest::header;
 
 mod errors;
 
@@ -26,44 +21,45 @@ use errors::*;
 
 // TODO: take a load of indexes and download them all
 
-pub struct Fetcher<C: Connect> {
-    client: Client<C>,
+pub struct Fetcher {
+    client: Client,
     mirror_root: String,
     local_store: path::PathBuf,
     remote_store: String,
 }
 
-impl<C: Connect> Fetcher<C> {
+impl Fetcher {
     pub fn parse_whole_index(
         &self,
         rel_path: String,
-    ) -> Result<Box<Future<Item = Vec<Chunk>, Error = hyper::Error>>> {
-        let uri = format!("{}{}", self.mirror_root, rel_path).parse()?;
+    ) -> Result<Vec<Chunk>> {
+        let uri = format!("{}{}", self.mirror_root, rel_path);
 
-        Ok(Box::new(self.client.get(uri).and_then(|resp| {
-            resp.body().concat2().and_then(|body| {
-                let mut chunks = Vec::new();
-                casync_format::read_index(io::Cursor::new(&body), |found| {
-                    chunks.push(found);
-                    Ok(())
-                }).map_err(|casync_error| {
-                    io::Error::new(
-                        io::ErrorKind::Other,
-                        format!(
-                            "sorry no error handling for you, the type system is too hard: {}",
-                            casync_error
-                        ),
-                    )
-                })?;
-                Ok(chunks)
-            })
-        })))
+        let resp = self.client.get(&uri)?.send()?;
+
+        if !resp.status().is_success() {
+            bail!("request failed: {}", resp.status());
+        }
+        let estimated_length = match resp.headers().get::<header::ContentLength>() {
+            Some(&header::ContentLength(len)) => len,
+            _ => 1337,
+        };
+
+        let estimated_length = estimated_length as usize / std::mem::size_of::<Chunk>();
+        let mut chunks = Vec::with_capacity(estimated_length);
+
+        casync_format::read_index(resp, |chunk| {
+            chunks.push(chunk);
+            Ok(())
+        })?;
+
+        Ok(chunks)
     }
 
     pub fn fetch_all_chunks<I>(
         &self,
         chunks: I,
-    ) -> Result<Box<Future<Item = (), Error = hyper::Error>>>
+    ) -> Result<()>
     where
         I: Iterator<Item = Chunk>,
     {
@@ -75,17 +71,23 @@ impl<C: Connect> Fetcher<C> {
                 continue;
             }
 
-            let uri = format!("{}{}", self.mirror_root, chunk.format_id()).parse()?;
-            self.client.get(uri).and_then(|resp| {
-                let mut temp = tempfile_fast::persistable_tempfile_in(&self.local_store).expect("error handling");
+            let uri = format!("{}{}{}", self.mirror_root, self.remote_store, chunk.format_id());
+            let mut resp = self.client.get(&uri)?.send()?;
+            if !resp.status().is_success() {
+                bail!("couldn't download chunk: {}", resp.status());
+            }
 
-                resp.body().for_each(|chunk|
-                    temp.write_all(&chunk).map(|_| ()).map_err(From::from)
-                ).then(|status| {
-                    temp.persist_noclobber(chunk_path).map_err(From::from)
-                })
-            });
+            let mut temp = tempfile_fast::persistable_tempfile_in(&self.local_store)?;
+            let written = io::copy(&mut resp, temp.as_mut())?;
+
+            if let Some(&header::ContentLength(expected)) = resp.headers().get::<header::ContentLength>() {
+                ensure!(written == expected,
+                    "data wasn't the right length, actual: {}, expected: {}", written, expected);
+            }
+
+            temp.persist_noclobber(chunk_path)?;
         }
-        unreachable!()
+
+        Ok(())
     }
 }

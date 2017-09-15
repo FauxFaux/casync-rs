@@ -6,6 +6,5 @@ authors = ["Chris West (Faux) <git@goeswhere.com>"]
 [dependencies]
 casync-format = { path = "../format" }
 error-chain = "0.10.0"
-futures = "0.1"
-hyper = "0.11"
+reqwest = "0.7.3"
 tempfile-fast = "0.1.1"

@@ -1,7 +1,10 @@
 error_chain! {
     foreign_links {
         Io(::std::io::Error);
-        HyperUri(::hyper::error::UriError);
-        Hyper(::hyper::Error);
+        Reqwest(::reqwest::Error);
+    }
+
+    links {
+        CaSyncFormat(::casync_format::Error, ::casync_format::ErrorKind);
     }
 }
