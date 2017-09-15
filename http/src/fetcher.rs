@@ -44,8 +44,8 @@ impl Fetcher {
     }
 
     pub fn fetch_all_chunks<I>(&self, chunks: I) -> Result<()>
-        where
-            I: Iterator<Item = Chunk>,
+    where
+        I: Iterator<Item = Chunk>,
     {
         for chunk in chunks {
             let mut chunk_path = self.local_store.clone();
@@ -70,15 +70,15 @@ impl Fetcher {
             let written = io::copy(&mut resp, temp.as_mut())?;
 
             if let Some(&header::ContentLength(expected)) =
-            resp.headers().get::<header::ContentLength>()
-                {
-                    ensure!(
+                resp.headers().get::<header::ContentLength>()
+            {
+                ensure!(
                     written == expected,
                     "data wasn't the right length, actual: {}, expected: {}",
                     written,
                     expected
                 );
-                }
+            }
 
             temp.persist_noclobber(chunk_path)?;
         }
