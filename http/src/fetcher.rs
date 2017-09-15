@@ -1,24 +1,36 @@
 use casync_format;
 use tempfile_fast;
 
+use std::fs;
 use std::mem;
 use std::io;
 use std::path;
 
 use casync_format::Chunk;
+use casync_format::format_chunk_id;
+use casync_format::ChunkId;
 use reqwest::Client;
 use reqwest::header;
 
 use errors::*;
 
-pub struct Fetcher {
-    client: Client,
+pub struct Fetcher<'c> {
+    client: &'c Client,
     mirror_root: String,
     local_store: path::PathBuf,
     remote_store: String,
 }
 
-impl Fetcher {
+impl<'c> Fetcher<'c> {
+    pub fn new<P: AsRef<path::Path>>(client: &'c Client, mirror_root: &str, local_store: P, remote_store: &str) -> Result<Self> {
+        Ok(Fetcher {
+            client,
+            mirror_root: mirror_root.to_string(),
+            local_store: local_store.as_ref().to_path_buf(),
+            remote_store: remote_store.to_string(),
+        })
+    }
+
     pub fn parse_whole_index(&self, rel_path: String) -> Result<Vec<Chunk>> {
         let uri = format!("{}{}", self.mirror_root, rel_path);
 
@@ -43,33 +55,34 @@ impl Fetcher {
         Ok(chunks)
     }
 
-    pub fn fetch_all_chunks<I>(&self, chunks: I) -> Result<()>
+    pub fn fetch_all_chunks<'a, I>(&self, chunks: I) -> Result<()>
     where
-        I: Iterator<Item = Chunk>,
+        I: Iterator<Item = &'a ChunkId>,
     {
         for chunk in chunks {
             let mut chunk_path = self.local_store.clone();
-            chunk_path.push(chunk.format_id());
+            chunk_path.push(format_chunk_id(&chunk));
             if chunk_path.is_file() {
                 // we already have it
                 continue;
             }
 
             let uri = format!(
-                "{}{}{}",
+                "{}{}/{}",
                 self.mirror_root,
                 self.remote_store,
-                chunk.format_id()
+                format_chunk_id(&chunk),
             );
             let mut resp = self.client.get(&uri)?.send()?;
 
             // TODO: give up again if the file already exists
 
             if !resp.status().is_success() {
-                bail!("couldn't download chunk: {}", resp.status());
+                bail!("couldn't download chunk: {}\nurl: {}", resp.status(), uri);
             }
 
-            let mut temp = tempfile_fast::persistable_tempfile_in(&self.local_store)?;
+            let mut temp = tempfile_fast::persistable_tempfile_in(&self.local_store)
+                .chain_err(|| format!("creating temporary directory inside {:?}", self.local_store))?;
             let written = io::copy(&mut resp, temp.as_mut())?;
 
             if let Some(&header::ContentLength(expected)) =
@@ -83,8 +96,11 @@ impl Fetcher {
                 );
             }
 
+            fs::create_dir_all(chunk_path.parent().unwrap())?;
+
             // TODO: ignore already-exists errors
-            temp.persist_noclobber(chunk_path)?;
+            temp.persist_noclobber(&chunk_path)
+                .chain_err(|| format!("storing downloaded chunk into: {:?}", chunk_path))?;
         }
 
         Ok(())

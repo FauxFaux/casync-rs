@@ -27,8 +27,8 @@ impl ChunkSize {
 }
 
 pub struct Chunk {
-    offset: u64,
-    id: ChunkId,
+    pub offset: u64,
+    pub id: ChunkId,
 }
 
 impl fmt::Debug for Chunk {
@@ -42,14 +42,18 @@ impl fmt::Debug for Chunk {
     }
 }
 
+pub fn format_chunk_id(id: &ChunkId) -> String {
+    let mut ret = format!("{:02x}{:02x}/", id[0], id[1]);
+    for byte in id {
+        ret.push_str(format!("{:02x}", byte).as_str());
+    }
+    ret.push_str(".cacnk");
+    ret
+}
+
 impl Chunk {
     pub fn format_id(&self) -> String {
-        let mut ret = format!("{:02x}{:02x}/", self.id[0], self.id[1]);
-        for byte in &self.id {
-            ret.push_str(format!("{:02x}", byte).as_str());
-        }
-        ret.push_str(".cacnk");
-        ret
+        format_chunk_id(&self.id)
     }
 
     pub fn open_from(&self, castr_path: &str) -> io::Result<zstd::Decoder<fs::File>> {

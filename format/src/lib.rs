@@ -12,6 +12,8 @@ mod stream;
 pub use errors::*;
 
 pub use chunks::ChunkReader;
+pub use format::ChunkId;
+pub use index::format_chunk_id;
 pub use index::read_index;
 pub use index::Chunk;
 pub use stream::read_stream;
