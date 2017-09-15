@@ -62,6 +62,9 @@ impl Fetcher {
                 chunk.format_id()
             );
             let mut resp = self.client.get(&uri)?.send()?;
+
+            // TODO: give up again if the file already exists
+
             if !resp.status().is_success() {
                 bail!("couldn't download chunk: {}", resp.status());
             }
@@ -80,6 +83,7 @@ impl Fetcher {
                 );
             }
 
+            // TODO: ignore already-exists errors
             temp.persist_noclobber(chunk_path)?;
         }
 
