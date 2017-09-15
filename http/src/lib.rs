@@ -29,10 +29,7 @@ pub struct Fetcher {
 }
 
 impl Fetcher {
-    pub fn parse_whole_index(
-        &self,
-        rel_path: String,
-    ) -> Result<Vec<Chunk>> {
+    pub fn parse_whole_index(&self, rel_path: String) -> Result<Vec<Chunk>> {
         let uri = format!("{}{}", self.mirror_root, rel_path);
 
         let resp = self.client.get(&uri)?.send()?;
@@ -56,10 +53,7 @@ impl Fetcher {
         Ok(chunks)
     }
 
-    pub fn fetch_all_chunks<I>(
-        &self,
-        chunks: I,
-    ) -> Result<()>
+    pub fn fetch_all_chunks<I>(&self, chunks: I) -> Result<()>
     where
         I: Iterator<Item = Chunk>,
     {
@@ -71,7 +65,12 @@ impl Fetcher {
                 continue;
             }
 
-            let uri = format!("{}{}{}", self.mirror_root, self.remote_store, chunk.format_id());
+            let uri = format!(
+                "{}{}{}",
+                self.mirror_root,
+                self.remote_store,
+                chunk.format_id()
+            );
             let mut resp = self.client.get(&uri)?.send()?;
             if !resp.status().is_success() {
                 bail!("couldn't download chunk: {}", resp.status());
@@ -80,9 +79,15 @@ impl Fetcher {
             let mut temp = tempfile_fast::persistable_tempfile_in(&self.local_store)?;
             let written = io::copy(&mut resp, temp.as_mut())?;
 
-            if let Some(&header::ContentLength(expected)) = resp.headers().get::<header::ContentLength>() {
-                ensure!(written == expected,
-                    "data wasn't the right length, actual: {}, expected: {}", written, expected);
+            if let Some(&header::ContentLength(expected)) =
+                resp.headers().get::<header::ContentLength>()
+            {
+                ensure!(
+                    written == expected,
+                    "data wasn't the right length, actual: {}, expected: {}",
+                    written,
+                    expected
+                );
             }
 
             temp.persist_noclobber(chunk_path)?;
