@@ -14,38 +14,38 @@ use clap::{Arg, App, AppSettings, SubCommand};
 
 use errors::*;
 
-fn takes_indexes<'a, 'b,>(app:App<'a, 'b>) -> App<'a, 'b> {
+fn takes_indexes<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
     app.arg(
         Arg::with_name("CAIDX")
             .help("the index file(s) to inspect")
             .required(true)
             .multiple(true),
-    )
-    .arg(
-        Arg::with_name("store")
-            .help("the castore which the indexes reference")
-            .long("store")
-            .required(true)
-            .takes_value(true),
-    )
+    ).arg(
+            Arg::with_name("store")
+                .help("the castore which the indexes reference")
+                .long("store")
+                .required(true)
+                .takes_value(true),
+        )
 }
 
 fn run() -> Result<()> {
     let matches = App::new("casync-rs")
         .setting(AppSettings::SubcommandRequired)
-        .subcommand(
-            takes_indexes(SubCommand::with_name("fast-export")
+        .subcommand(takes_indexes(
+            SubCommand::with_name("fast-export")
                 .about("fast-export some archives")
-                .arg(Arg::with_name("ref-prefix")
-                    .help("prefix for ref; index of argument appended")
-                    .long("ref-prefix")
-                    .required(true)
-                    .takes_value(true)))
-        )
-        .subcommand(
-            takes_indexes(SubCommand::with_name("mtree")
-                .about("dump data about some archives"))
-        )
+                .arg(
+                    Arg::with_name("ref-prefix")
+                        .help("prefix for ref; index of argument appended")
+                        .long("ref-prefix")
+                        .required(true)
+                        .takes_value(true),
+                ),
+        ))
+        .subcommand(takes_indexes(SubCommand::with_name("mtree").about(
+            "dump data about some archives",
+        )))
         .get_matches();
 
     match matches.subcommand() {
@@ -70,13 +70,13 @@ fn run() -> Result<()> {
             }
 
             println!("done");
-        },
+        }
         ("mtree", Some(matches)) => {
             let castr = matches.value_of("store").unwrap();
             for caidx in matches.values_of("CAIDX").unwrap() {
                 mtree(castr, caidx)?;
             }
-        },
+        }
         _ => unreachable!(),
     }
 
@@ -112,10 +112,17 @@ fn fast_export(castr: &str, caidx: &str) -> Result<()> {
 
         let mut data = data.ok_or("non-directory has no contents")?;
 
-        ensure!(entry.is_reg(), "only directories and regular files are supported");
+        ensure!(
+            entry.is_reg(),
+            "only directories and regular files are supported"
+        );
         let executable = 0o100 == (entry.mode & 0o100);
 
-        println!("M {} inline {}", if executable { "100755" } else { "100644" }, utf8_path(path)?);
+        println!(
+            "M {} inline {}",
+            if executable { "100755" } else { "100644" },
+            utf8_path(path)?
+        );
         println!("data {}", data.limit());
         io::copy(&mut data, &mut io::stdout())?;
 

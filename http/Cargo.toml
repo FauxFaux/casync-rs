@@ -1,9 +1,11 @@
 [package]
-name = "casync-tool"
+name = "casync-http"
 version = "0.1.0"
 authors = ["Chris West (Faux) <git@goeswhere.com>"]
 
 [dependencies]
 casync-format = { path = "../format" }
-clap = "2.26.0"
 error-chain = "0.10.0"
+futures = "0.1"
+hyper = "0.11"
+tempfile-fast = "0.1.1"

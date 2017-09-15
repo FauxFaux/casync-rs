@@ -35,7 +35,7 @@ impl fmt::Debug for Chunk {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "Chunk {{ off: x{:x}, id: {}",
+            "Chunk {{ off: x{:x}, id: {} }}",
             self.offset,
             self.format_id()
         )
