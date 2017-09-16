@@ -1,3 +1,4 @@
+use std;
 use std::io;
 use std::io::Read;
 use std::fmt;
@@ -157,6 +158,20 @@ fn read_data_record<R: Read>(header_size: u64, mut from: R) -> Result<Vec<u8>> {
     Ok(buf)
 }
 
+pub fn utf8_path(from: &[Vec<u8>]) -> std::result::Result<String, ::std::string::FromUtf8Error> {
+    let mut ret = String::new();
+    for component in from {
+        ret.push_str(String::from_utf8(component.clone())?.as_str());
+        ret.push_str("/");
+    }
+
+    if !ret.is_empty() {
+        let waste = ret.len() - 1;
+        ret.truncate(waste);
+    }
+
+    Ok(ret)
+}
 
 fn leu64<R: Read>(mut from: R) -> io::Result<u64> {
     from.read_u64::<LittleEndian>()

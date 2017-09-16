@@ -22,7 +22,12 @@ pub struct Fetcher<'c> {
 }
 
 impl<'c> Fetcher<'c> {
-    pub fn new<P: AsRef<path::Path>>(client: &'c Client, mirror_root: &str, local_store: P, remote_store: &str) -> Result<Self> {
+    pub fn new<P: AsRef<path::Path>>(
+        client: &'c Client,
+        mirror_root: &str,
+        local_store: P,
+        remote_store: &str,
+    ) -> Result<Self> {
         Ok(Fetcher {
             client,
             mirror_root: mirror_root.to_string(),
@@ -67,12 +72,13 @@ impl<'c> Fetcher<'c> {
                 continue;
             }
 
-            let uri = format!(
-                "{}{}/{}",
-                self.mirror_root,
-                self.remote_store,
-                format_chunk_id(&chunk),
-            );
+            let uri =
+                format!(
+                    "{}{}/{}",
+                    self.mirror_root,
+                    self.remote_store,
+                    format_chunk_id(&chunk),
+                );
             let mut resp = self.client.get(&uri)?.send()?;
 
             // TODO: give up again if the file already exists
@@ -82,7 +88,9 @@ impl<'c> Fetcher<'c> {
             }
 
             let mut temp = tempfile_fast::persistable_tempfile_in(&self.local_store)
-                .chain_err(|| format!("creating temporary directory inside {:?}", self.local_store))?;
+                .chain_err(|| {
+                    format!("creating temporary directory inside {:?}", self.local_store)
+                })?;
             let written = io::copy(&mut resp, temp.as_mut())?;
 
             if let Some(&header::ContentLength(expected)) =
@@ -99,10 +107,34 @@ impl<'c> Fetcher<'c> {
             fs::create_dir_all(chunk_path.parent().unwrap())?;
 
             // TODO: ignore already-exists errors
-            temp.persist_noclobber(&chunk_path)
-                .chain_err(|| format!("storing downloaded chunk into: {:?}", chunk_path))?;
+            temp.persist_noclobber(&chunk_path).chain_err(|| {
+                format!("storing downloaded chunk into: {:?}", chunk_path)
+            })?;
         }
 
         Ok(())
+    }
+
+    pub fn local_store(&self) -> path::PathBuf {
+        self.local_store.clone()
+    }
+
+    #[cfg(never)]
+    pub fn read_cache<'r, I, F>(&self, mut chunks: I, into: F) -> Result<()>
+    where
+        I: Iterator<Item = Chunk>,
+        F: FnMut(&'r [Vec<u8>], casync_format::Entry, Option<Box<io::Read>>) -> casync_format::Result<()>,
+    {
+        let reader = casync_format::ChunkReader::new(|| {
+            Ok(match chunks.next() {
+                Some(chunk) => Some(chunk.open_from(self.local_store)?),
+                None => None,
+            })
+        }).chain_err(|| "initialising reader")?;
+
+        casync_format::read_stream(reader, |v, e, r| {
+            into(v, e, r.map(|t| Box::new(t) as Box<io::Read>))?;
+            Ok(())
+        }).chain_err(|| "reading stream")
     }
 }

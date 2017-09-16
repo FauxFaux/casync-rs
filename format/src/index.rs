@@ -2,6 +2,7 @@ use std;
 use std::fmt;
 use std::fs;
 use std::io;
+use std::path;
 use std::io::Read;
 
 use errors::*;
@@ -56,12 +57,13 @@ impl Chunk {
         format_chunk_id(&self.id)
     }
 
-    pub fn open_from(&self, castr_path: &str) -> io::Result<zstd::Decoder<fs::File>> {
-        zstd::Decoder::new(fs::File::open(format!(
-            "{}/{}",
-            castr_path,
-            self.format_id(),
-        ))?)
+    pub fn open_from<P: AsRef<path::Path>>(
+        &self,
+        castr_path: P,
+    ) -> io::Result<zstd::Decoder<fs::File>> {
+        let mut buf = castr_path.as_ref().to_path_buf();
+        buf.push(self.format_id());
+        zstd::Decoder::new(fs::File::open(buf)?)
     }
 }
 

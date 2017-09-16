@@ -121,7 +121,7 @@ fn fast_export(castr: &str, caidx: &str) -> Result<()> {
         println!(
             "M {} inline {}",
             if executable { "100755" } else { "100644" },
-            utf8_path(path)?
+            casync_format::utf8_path(path)?
         );
         println!("data {}", data.limit());
         io::copy(&mut data, &mut io::stdout())?;
@@ -151,28 +151,13 @@ fn mtree(castr: &str, caidx: &str) -> Result<()> {
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
     casync_format::read_stream(reader, |path, entry, data| {
-        println!("{}, {:?}", utf8_path(path)?, entry);
+        println!("{}, {:?}", casync_format::utf8_path(path)?, entry);
         let mut buf = vec![];
         if data.is_some() {
             data.unwrap().read_to_end(&mut buf)?;
         }
         Ok(())
     }).chain_err(|| format!("reading stream of index {}", caidx))
-}
-
-fn utf8_path(from: &[Vec<u8>]) -> std::result::Result<String, ::std::string::FromUtf8Error> {
-    let mut ret = String::new();
-    for component in from {
-        ret.push_str(String::from_utf8(component.clone())?.as_str());
-        ret.push_str("/");
-    }
-
-    if !ret.is_empty() {
-        let waste = ret.len() - 1;
-        ret.truncate(waste);
-    }
-
-    Ok(ret)
 }
 
 quick_main!(run);
