@@ -1,0 +1,6 @@
+This code doesn't work. That shouldn't be a surprise, given it's on a
+github repo with no releases and no description.
+
+But, also, this code currently does not check nearly any integrity at all,
+it will just generate complete nonsense and declare success. This is awful,
+no tool should ever do that. Please don't look at my shame.
