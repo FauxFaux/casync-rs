@@ -39,7 +39,7 @@ impl<'c> Fetcher<'c> {
     pub fn parse_whole_index(&self, rel_path: String) -> Result<Vec<Chunk>> {
         let uri = format!("{}{}", self.mirror_root, rel_path);
 
-        let resp = self.client.get(&uri)?.send()?;
+        let resp = self.client.get(&uri).send()?;
 
         if !resp.status().is_success() {
             bail!("request failed: {}", resp.status());
@@ -79,7 +79,7 @@ impl<'c> Fetcher<'c> {
                     self.remote_store,
                     format_chunk_id(&chunk),
                 );
-            let mut resp = self.client.get(&uri)?.send()?;
+            let mut resp = self.client.get(&uri).send()?;
 
             // TODO: give up again if the file already exists
 

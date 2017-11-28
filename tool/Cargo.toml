@@ -5,5 +5,5 @@ authors = ["Chris West (Faux) <git@goeswhere.com>"]
 
 [dependencies]
 casync-format = { path = "../format" }
-clap = "2.26.0"
-error-chain = "0.10.0"
+clap = "2"
+error-chain = "0.11"

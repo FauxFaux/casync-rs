@@ -4,6 +4,6 @@ version = "0.1.0"
 authors = ["Chris West (Faux) <git@goeswhere.com>"]
 
 [dependencies]
-byteorder = "1.1.0"
-error-chain = "0.10.0"
-zstd = "0.4.14"
+byteorder = "1"
+error-chain = "0.11"
+zstd = "0.4"
