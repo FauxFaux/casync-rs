@@ -72,13 +72,12 @@ impl<'c> Fetcher<'c> {
                 continue;
             }
 
-            let uri =
-                format!(
-                    "{}{}/{}",
-                    self.mirror_root,
-                    self.remote_store,
-                    format_chunk_id(&chunk),
-                );
+            let uri = format!(
+                "{}{}/{}",
+                self.mirror_root,
+                self.remote_store,
+                format_chunk_id(&chunk),
+            );
             let mut resp = self.client.get(&uri).send()?;
 
             // TODO: give up again if the file already exists
@@ -87,10 +86,9 @@ impl<'c> Fetcher<'c> {
                 bail!("couldn't download chunk: {}\nurl: {}", resp.status(), uri);
             }
 
-            let mut temp = tempfile_fast::persistable_tempfile_in(&self.local_store)
-                .chain_err(|| {
-                    format!("creating temporary directory inside {:?}", self.local_store)
-                })?;
+            let mut temp = tempfile_fast::persistable_tempfile_in(&self.local_store).chain_err(
+                || format!("creating temporary directory inside {:?}", self.local_store),
+            )?;
             let written = io::copy(&mut resp, temp.as_mut())?;
 
             if let Some(&header::ContentLength(expected)) =
@@ -123,7 +121,8 @@ impl<'c> Fetcher<'c> {
     pub fn read_cache<'r, I, F>(&self, mut chunks: I, into: F) -> Result<()>
     where
         I: Iterator<Item = Chunk>,
-        F: FnMut(&'r [Vec<u8>], casync_format::Entry, Option<Box<io::Read>>) -> casync_format::Result<()>,
+        F: FnMut(&'r [Vec<u8>], casync_format::Entry, Option<Box<io::Read>>)
+            -> casync_format::Result<()>,
     {
         let reader = casync_format::ChunkReader::new(|| {
             Ok(match chunks.next() {

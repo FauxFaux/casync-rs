@@ -10,7 +10,7 @@ use std::io;
 use std::io::Read;
 
 use casync_format::Chunk;
-use clap::{Arg, App, AppSettings, SubCommand};
+use clap::{App, AppSettings, Arg, SubCommand};
 
 use errors::*;
 
@@ -43,9 +43,9 @@ fn run() -> Result<()> {
                         .takes_value(true),
                 ),
         ))
-        .subcommand(takes_indexes(SubCommand::with_name("mtree").about(
-            "dump data about some archives",
-        )))
+        .subcommand(takes_indexes(
+            SubCommand::with_name("mtree").about("dump data about some archives"),
+        ))
         .get_matches();
 
     match matches.subcommand() {
@@ -104,7 +104,6 @@ fn fast_export(castr: &str, caidx: &str) -> Result<()> {
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
     casync_format::read_stream(reader, |path, entry, data| {
-
         if entry.is_dir() {
             ensure!(data.is_none(), "data for directory");
             return Ok(());

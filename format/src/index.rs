@@ -10,7 +10,7 @@ use format::ChunkId;
 use format::IndexMagic;
 use zstd;
 
-use byteorder::{ReadBytesExt, LittleEndian};
+use byteorder::{LittleEndian, ReadBytesExt};
 
 struct ChunkSize {
     min: u64,

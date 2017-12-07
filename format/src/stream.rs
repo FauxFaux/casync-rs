@@ -6,7 +6,7 @@ use std::fmt;
 use errors::*;
 use format::StreamMagic;
 
-use byteorder::{ReadBytesExt, LittleEndian};
+use byteorder::{LittleEndian, ReadBytesExt};
 
 const HEADER_TAG_LEN: u64 = 16;
 
@@ -99,8 +99,13 @@ where
             StreamMagic::Filename => {
                 let mut new_name = read_data_record(header_size, &mut from)?;
 
-                ensure!(new_name.pop().map(|last_char| 0 == last_char).unwrap_or(false),
-                    "filename must be non-empty and null-terminated");
+                ensure!(
+                    new_name
+                        .pop()
+                        .map(|last_char| 0 == last_char)
+                        .unwrap_or(false),
+                    "filename must be non-empty and null-terminated"
+                );
 
                 if let Some(current) = current {
                     // if we're currently in an Entry, then a new filename indicates a new,
