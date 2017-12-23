@@ -17,9 +17,9 @@ pub enum StreamMagic {
     Entry,
     User,
     Group,
-    Filename,
-    Payload,
-    Goodbye,
+    Name,
+    Data,
+    Bye,
 }
 
 #[derive(Eq, PartialEq, Debug)]
@@ -35,9 +35,9 @@ impl StreamMagic {
             ENTRY => Entry,
             USER => User,
             GROUP => Group,
-            FILENAME => Filename,
-            PAYLOAD => Payload,
-            GOODBYE => Goodbye,
+            FILENAME => Name,
+            PAYLOAD => Data,
+            GOODBYE => Bye,
             _ => bail!("unrecognised stream magic: {:x}", val),
         })
     }

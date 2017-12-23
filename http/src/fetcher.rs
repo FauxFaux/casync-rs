@@ -105,9 +105,8 @@ impl<'c> Fetcher<'c> {
             fs::create_dir_all(chunk_path.parent().unwrap())?;
 
             // TODO: ignore already-exists errors
-            temp.persist_noclobber(&chunk_path).chain_err(|| {
-                format!("storing downloaded chunk into: {:?}", chunk_path)
-            })?;
+            temp.persist_noclobber(&chunk_path)
+                .chain_err(|| format!("storing downloaded chunk into: {:?}", chunk_path))?;
         }
 
         Ok(())

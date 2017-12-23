@@ -21,12 +21,12 @@ fn takes_indexes<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
             .required(true)
             .multiple(true),
     ).arg(
-            Arg::with_name("store")
-                .help("the castore which the indexes reference")
-                .long("store")
-                .required(true)
-                .takes_value(true),
-        )
+        Arg::with_name("store")
+            .help("the castore which the indexes reference")
+            .long("store")
+            .required(true)
+            .takes_value(true),
+    )
 }
 
 fn run() -> Result<()> {

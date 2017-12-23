@@ -112,7 +112,6 @@ where
             }
         }
 
-
         into(Chunk { offset, id })?;
     }
     Ok(())

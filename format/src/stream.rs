@@ -74,19 +74,7 @@ where
                 );
 
                 ensure!(current.is_none(), "entry found without data");
-                let mut entry = Entry::default();
-
-                leu64(&mut from)?; // feature_flags
-
-                entry.mode = leu64(&mut from)?;
-
-                leu64(&mut from)?; // flags
-
-                entry.uid = leu64(&mut from)?;
-                entry.gid = leu64(&mut from)?;
-                entry.mtime = leu64(&mut from)?;
-
-                current = Some(entry);
+                current = Some(load_entry(&mut from)?);
             }
             StreamMagic::User => {
                 current.as_mut().ok_or("user without entry")?.user_name =
@@ -96,7 +84,7 @@ where
                 current.as_mut().ok_or("group without entry")?.group_name =
                     Some(read_string_record(header_size, &mut from)?);
             }
-            StreamMagic::Filename => {
+            StreamMagic::Name => {
                 let mut new_name = read_data_record(header_size, &mut from)?;
 
                 ensure!(
@@ -120,7 +108,7 @@ where
 
                 current = None;
             }
-            StreamMagic::Payload => {
+            StreamMagic::Data => {
                 ensure!(
                     header_size >= HEADER_TAG_LEN,
                     "data <0 bytes long: {}",
@@ -133,13 +121,88 @@ where
                 )?;
                 current = None;
             }
-            StreamMagic::Goodbye => {
+            StreamMagic::Bye => {
                 // TODO: all kinds of tailing records
                 read_data_record(header_size, &mut from)?;
                 path.pop();
                 if path.is_empty() {
                     return Ok(());
                 }
+            }
+        }
+    }
+}
+
+fn load_entry<R: Read>(mut from: R) -> Result<Entry> {
+    let mut entry = Entry::default();
+
+    leu64(&mut from)?; // feature_flags
+
+    entry.mode = leu64(&mut from)?;
+
+    leu64(&mut from)?; // flags
+
+    entry.uid = leu64(&mut from)?;
+    entry.gid = leu64(&mut from)?;
+    entry.mtime = leu64(&mut from)?;
+
+    Ok(entry)
+}
+
+pub fn dump_packets<R: Read>(mut from: R) -> Result<()> {
+    let mut in_entry = false;
+    let mut depth = 0usize;
+    let mut indent = 0usize;
+    loop {
+        let header_size = leu64(&mut from)?;
+        let header_format = StreamMagic::from(leu64(&mut from)?)?;
+
+        let payload_len = header_size - 16;
+        let mut payload = vec![0; usize_from(payload_len)];
+        from.read_exact(&mut payload)?;
+        print!(
+            "{} * {:5} | {:3} | ",
+            String::from_utf8(vec![b' '; indent * 2]).unwrap(),
+            format!("{:?}", header_format),
+            payload_len
+        );
+
+        match header_format {
+            StreamMagic::Entry => {
+                let entry = load_entry(io::Cursor::new(&payload))?;
+                println!("dir: {}", entry.is_dir());
+
+                in_entry = true;
+                indent += 1;
+            }
+            StreamMagic::Data => {
+                println!();
+
+                indent -= 1;
+                in_entry = false;
+            }
+            StreamMagic::Name => {
+                print!("{}", String::from_utf8_lossy(&payload));
+
+                if in_entry {
+                    depth += 1;
+                    println!(", in entry, depth now {}", depth);
+                } else {
+                    println!(", outside entry, depth still {}", depth);
+                }
+            }
+            StreamMagic::Bye => {
+                depth -= 1;
+                indent -= 1;
+
+                println!("leaving entry, depth now {}", depth);
+
+                if 0 == depth {
+                    return Ok(());
+                }
+            }
+            _ => {
+                println!("{}", String::from_utf8_lossy(&payload));
             }
         }
     }
@@ -183,4 +246,9 @@ pub fn utf8_path(from: &[Vec<u8>]) -> std::result::Result<String, ::std::string:
 
 fn leu64<R: Read>(mut from: R) -> io::Result<u64> {
     from.read_u64::<LittleEndian>()
+}
+
+fn usize_from(val: u64) -> usize {
+    assert!(val <= std::usize::MAX as u64);
+    val as usize
 }

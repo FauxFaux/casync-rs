@@ -8,7 +8,6 @@ pub struct ChunkReader<R, F> {
     next: F,
 }
 
-
 impl<R: Read, F> ChunkReader<R, F>
 where
     F: FnMut() -> io::Result<Option<R>>,
