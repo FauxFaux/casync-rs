@@ -18,7 +18,7 @@ pub use index::read_index;
 pub use index::Chunk;
 pub use stream::dump_packets;
 pub use stream::utf8_path;
+pub use stream::Content;
 pub use stream::Entry;
 pub use stream::Item;
-pub use stream::ItemType;
 pub use stream::Stream;

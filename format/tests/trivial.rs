@@ -23,12 +23,12 @@ fn load_index() {
 fn two() {
     let file = &include_bytes!("data/two.catar")[..];
     let mut stream = casync_format::Stream::new(io::Cursor::new(file));
-    while let Some(res) = stream.next() {
-        let (path, len) = res.unwrap();
-        println!("{:?} {:?}", path, len);
-        if let casync_format::ItemType::File(len) = len {
-            let mut buf = Vec::with_capacity(len as usize);
-            stream.as_mut().take(len).read_to_end(&mut buf);
+    while let Some(res) = stream.next().unwrap() {
+        let (path, content) = res;
+        println!("{:?} {:?}", path, content);
+        if let casync_format::Content::File(mut io) = content {
+            let mut buf = Vec::with_capacity(io.limit() as usize);
+            io.read_to_end(&mut buf);
         }
     }
 }

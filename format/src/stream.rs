@@ -77,6 +77,30 @@ impl Entry {
     }
 }
 
+#[derive(Clone, Debug)]
+enum ItemType {
+    File(u64),
+    Directory,
+}
+
+#[derive(Debug)]
+pub enum Content<'r, R: 'r> {
+    File(io::Take<&'r mut R>),
+    Directory,
+}
+
+impl ItemType {
+    fn into_content<'r, R: 'r + Read, F>(self, take: F) -> Content<'r, R>
+    where
+        F: FnOnce(u64) -> io::Take<&'r mut R>,
+    {
+        match self {
+            ItemType::File(len) => Content::File(take(len)),
+            ItemType::Directory => Content::Directory,
+        }
+    }
+}
+
 pub struct Stream<R: Read> {
     inner: R,
     path: Vec<Item>,
@@ -101,35 +125,28 @@ impl<R: Read> Stream<R> {
     pub fn into_inner(self) -> R {
         self.inner
     }
-}
 
-#[derive(Clone, Debug)]
-pub enum ItemType {
-    File(u64),
-    Directory,
-}
-
-impl<R: Read> Iterator for Stream<R> {
-    type Item = Result<(Vec<Item>, ItemType)>;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    pub fn next(&mut self) -> Result<Option<(Vec<Item>, Content<R>)>> {
         if self.path.is_empty() {
-            return None;
+            return Ok(None);
         }
 
-        Some(process_item(&mut self.inner, &mut self.path).map(|item| {
+        process_item(&mut self.inner, &mut self.path).map(move |item| {
             let copy = self.path.clone();
             self.path.pop();
-            (copy, item)
-        }))
+            Some((
+                copy,
+                item.into_content(move |limit| (&mut self.inner).take(limit)),
+            ))
+        })
     }
 }
 
-pub fn process_item<R: Read>(mut from: &mut R, path: &mut Vec<Item>) -> Result<ItemType> {
+fn process_item<R: Read>(mut from: &mut R, path: &mut Vec<Item>) -> Result<ItemType> {
     loop {
         let header_size = leu64(&mut from)?;
         let header_format = StreamMagic::from(leu64(&mut from)?)?;
-        //println!("header: {:?}", header_format);
+
         match header_format {
             StreamMagic::Entry => {
                 ensure!(
