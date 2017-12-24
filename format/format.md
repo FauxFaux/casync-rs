@@ -12,7 +12,80 @@
 
 # .catar
 
-Series of packets.
+A `.catar` is a series of packets, which represent a directory structure.
+
+Everything is stored in alphabetical order, and traversed depth first.
+A directory structure like the following:
+
+```
+$ (cd two; tree .)
+.
+├── b
+│   ├── three
+│   └── two
+└── one
+```
+
+..will be stored like this:
+
+```
+$ casync mtree two.catar | cut ...
+.       type=dir
+b       type=dir
+b/three type=file
+b/two   type=file
+one     type=file
+```
+
+The directory structure is represented by a state machine which works nothing
+like how I expect. Here's an attempt at representing it:
+
+```
+Entry: dir: true
+  Name: b, in entry, depth now 1
+  Entry: dir: true
+    Name: three, in entry, depth now 2
+    Entry: dir: false
+      Data
+    Name: two, outside entry, depth still 2
+    Entry: dir: false
+      Data
+    Bye: leaving entry, depth now 1
+  Name: one, outside entry, depth still 1
+  Entry: dir: false
+    Data
+  Bye: leaving entry, depth now 0
+```
+
+Rules:
+
+ * A `Data` record causes us to leave the current `Entry`, it was a file.
+ * On processing a `Name` record, if were are "inside" and `Entry`, then
+    we are inside a directory. Otherwise, we're specifying the name for the
+    next item.
+ * `Bye` causes us to leave a directory. When we leave the root directory,
+    we are done.
+
+
+Maybe it would be easier to think of it as:
+
+```
+item: name: . [this record is implicit]
+  item-metadata: dir: true
+  item: name: b
+    item-metadata: dir: true
+    item: name: three
+      item-metadata: dir: false
+      item-data; end of item
+    item: name: two
+      item-metadata: dir: false
+      item-data; end of item
+    item-end; without any data
+  item: name: one
+    item-metadata: dir: false
+    item-data; end of item
+  item-end; without any data
+```
 
 ## Packet format
 

@@ -182,7 +182,7 @@ pub fn dump_packets<R: Read>(mut from: R) -> Result<()> {
                 in_entry = false;
             }
             StreamMagic::Name => {
-                print!("{}", String::from_utf8_lossy(&payload));
+                print!("{}", String::from_utf8_lossy(&payload[..payload.len() - 1]));
 
                 if in_entry {
                     depth += 1;
@@ -202,7 +202,7 @@ pub fn dump_packets<R: Read>(mut from: R) -> Result<()> {
                 }
             }
             _ => {
-                println!("{}", String::from_utf8_lossy(&payload));
+                println!("{}", String::from_utf8_lossy(&payload[..payload.len() - 1]));
             }
         }
     }
