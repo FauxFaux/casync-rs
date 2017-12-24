@@ -116,14 +116,12 @@ impl<R: Read> Iterator for Stream<R> {
         if self.path.is_empty() {
             return None;
         }
-        match process_item(&mut self.inner, &mut self.path) {
-            Ok(item) => {
-                let copy = self.path.clone();
-                self.path.pop();
-                Some(Ok((copy, item)))
-            },
-            Err(e) => Some(Err(e)),
-        }
+
+        Some(process_item(&mut self.inner, &mut self.path).map(|item| {
+            let copy = self.path.clone();
+            self.path.pop();
+            (copy, item)
+        }))
     }
 }
 
