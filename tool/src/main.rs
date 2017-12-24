@@ -104,7 +104,10 @@ fn fast_export(castr: &str, caidx: &str) -> Result<()> {
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
     let mut stream = casync_format::Stream::new(reader);
-    while let Some(path_content) = stream.next().chain_err(|| format!("reading stream of index {}", caidx))? {
+    while let Some(path_content) = stream
+        .next()
+        .chain_err(|| format!("reading stream of index {}", caidx))?
+    {
         let (path, content) = path_content;
         let last = path[path.len() - 1].clone();
         let names: Vec<Box<[u8]>> = path.into_iter().map(|item| item.name).collect();
@@ -157,7 +160,10 @@ fn mtree(castr: &str, caidx: &str) -> Result<()> {
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
     let mut stream = casync_format::Stream::new(reader);
-    while let Some(path_content) = stream.next().chain_err(|| format!("reading stream of index {}", caidx))? {
+    while let Some(path_content) = stream
+        .next()
+        .chain_err(|| format!("reading stream of index {}", caidx))?
+    {
         let (path, content) = path_content;
         let last = path[path.len() - 1].clone();
         let names: Vec<Box<[u8]>> = path.into_iter().map(|item| item.name).collect();

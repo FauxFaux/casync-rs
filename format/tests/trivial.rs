@@ -71,10 +71,5 @@ fn load_nums() {
         }
     }
 
-    assert_eq!(&[
-        "./data".to_string(),
-        ".".to_string(),
-    ],
-    paths.as_slice()
-    )
+    assert_eq!(&["./data".to_string(), ".".to_string(),], paths.as_slice())
 }

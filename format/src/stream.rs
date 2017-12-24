@@ -9,6 +9,7 @@ use format::StreamMagic;
 use byteorder::{LittleEndian, ReadBytesExt};
 
 const HEADER_TAG_LEN: u64 = 16;
+const RECORD_SIZE_LIMIT: u64 = 64 * 1024;
 
 #[derive(Clone)]
 pub struct Item {
@@ -179,15 +180,9 @@ fn process_item<R: Read>(mut from: &mut R, path: &mut Vec<Item>) -> Result<ItemT
                     Some(read_string_record(header_size, &mut from)?.into_boxed_slice());
             }
             StreamMagic::Name => {
-                let mut new_name = read_data_record(header_size, &mut from)?;
+                let mut new_name = read_string_record(header_size, &mut from)?;
 
-                ensure!(
-                    new_name
-                        .pop()
-                        .map(|last_char| 0 == last_char)
-                        .unwrap_or(false),
-                    "filename must be non-empty and null-terminated"
-                );
+                ensure!(!new_name.is_empty(), "filename must be non-empty");
 
                 path.push(Item {
                     name: new_name.into_boxed_slice(),
@@ -273,12 +268,18 @@ pub fn dump_packets<R: Read>(mut from: R) -> Result<()> {
 }
 
 fn read_string_record<R: Read>(header_size: u64, from: R) -> Result<Vec<u8>> {
-    ensure!(
-        header_size < 256 + HEADER_TAG_LEN,
-        "refusing to support names over ~255 characters, was: {}",
-        header_size
-    );
-    read_data_record(header_size, from)
+    match read_data_record(header_size, from) {
+        Ok(ref vec) if vec.is_empty() => Ok(Vec::new()),
+        Ok(mut vec) => {
+            ensure!(
+                vec[vec.len() - 1] == 0,
+                "string record must be null-terminated"
+            );
+            vec.pop();
+            Ok(vec)
+        }
+        Err(e) => Err(e),
+    }
 }
 
 fn read_data_record<R: Read>(header_size: u64, mut from: R) -> Result<Vec<u8>> {
@@ -288,12 +289,20 @@ fn read_data_record<R: Read>(header_size: u64, mut from: R) -> Result<Vec<u8>> {
         header_size
     );
 
+    ensure!(
+        header_size < RECORD_SIZE_LIMIT + HEADER_TAG_LEN,
+        "refusing to support records over ~64kB, was: {}",
+        header_size
+    );
+
     let mut buf = vec![0u8; (header_size - HEADER_TAG_LEN) as usize];
     from.read_exact(&mut buf)?;
     Ok(buf)
 }
 
-pub fn utf8_path(from: Vec<Box<[u8]>>) -> std::result::Result<String, ::std::string::FromUtf8Error> {
+pub fn utf8_path(
+    from: Vec<Box<[u8]>>,
+) -> std::result::Result<String, ::std::string::FromUtf8Error> {
     let mut ret = String::new();
     for component in from {
         ret.push_str(String::from_utf8(component.into_vec())?.as_str());
