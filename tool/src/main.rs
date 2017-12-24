@@ -109,7 +109,7 @@ fn fast_export(castr: &str, caidx: &str) -> Result<()> {
         .chain_err(|| format!("reading stream of index {}", caidx))?
     {
         let (path, content) = path_content;
-        let last = path[path.len() - 1].clone();
+        let last = path.end().clone();
         let names: Vec<Box<[u8]>> = path.into_iter().map(|item| item.name).collect();
 
         let last_entry = match last.entry {
@@ -165,7 +165,7 @@ fn mtree(castr: &str, caidx: &str) -> Result<()> {
         .chain_err(|| format!("reading stream of index {}", caidx))?
     {
         let (path, content) = path_content;
-        let last = path[path.len() - 1].clone();
+        let last = path.end().clone();
         let names: Vec<Box<[u8]>> = path.into_iter().map(|item| item.name).collect();
         println!("{}, {:?}", casync_format::utf8_path(names)?, last);
 

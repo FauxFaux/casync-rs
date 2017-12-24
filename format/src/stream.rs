@@ -11,6 +11,16 @@ use byteorder::{LittleEndian, ReadBytesExt};
 const HEADER_TAG_LEN: u64 = 16;
 const RECORD_SIZE_LIMIT: u64 = 64 * 1024;
 
+pub struct Stream<R: Read> {
+    inner: R,
+    path: Path,
+}
+
+#[derive(Debug, Clone)]
+pub struct Path {
+    inner: Vec<Item>,
+}
+
 #[derive(Clone)]
 pub struct Item {
     pub name: Box<[u8]>,
@@ -102,16 +112,11 @@ impl ItemType {
     }
 }
 
-pub struct Stream<R: Read> {
-    inner: R,
-    path: Vec<Item>,
-}
-
 impl<R: Read> Stream<R> {
     pub fn new(inner: R) -> Stream<R> {
         Stream {
             inner,
-            path: vec![Item::new(".")],
+            path: Path::at_dot(),
         }
     }
 
@@ -127,7 +132,7 @@ impl<R: Read> Stream<R> {
         self.inner
     }
 
-    pub fn next(&mut self) -> Result<Option<(Vec<Item>, Content<R>)>> {
+    pub fn next(&mut self) -> Result<Option<(Path, Content<R>)>> {
         if self.path.is_empty() {
             return Ok(None);
         }
@@ -143,7 +148,41 @@ impl<R: Read> Stream<R> {
     }
 }
 
-fn process_item<R: Read>(mut from: &mut R, path: &mut Vec<Item>) -> Result<ItemType> {
+impl Path {
+    fn at_dot() -> Path {
+        Path {
+            inner: vec![Item::new(".")],
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
+    fn push(&mut self, item: Item) {
+        self.inner.push(item);
+    }
+
+    fn pop(&mut self) {
+        self.inner.pop();
+    }
+
+    pub fn end(&self) -> &Item {
+        let end = self.inner.len() - 1;
+        &self.inner[end]
+    }
+
+    fn end_entry(&mut self) -> &mut Option<Entry> {
+        let end = self.inner.len() - 1;
+        &mut self.inner[end].entry
+    }
+
+    pub fn into_iter(self) -> ::std::vec::IntoIter<Item> {
+        self.inner.into_iter()
+    }
+}
+
+fn process_item<R: Read>(mut from: &mut R, path: &mut Path) -> Result<ItemType> {
     loop {
         let header_size = leu64(&mut from)?;
         let header_format = StreamMagic::from(leu64(&mut from)?)?;
@@ -156,27 +195,23 @@ fn process_item<R: Read>(mut from: &mut R, path: &mut Vec<Item>) -> Result<ItemT
                     header_size
                 );
 
-                // BORROW CHECKER
-                let end = path.len() - 1;
-                let end = &mut path[end];
+                let end = path.end_entry();
 
-                ensure!(end.entry.is_none(), "entry found without data");
-                end.entry = Some(load_entry(&mut from)?);
+                ensure!(end.is_none(), "entry found without data");
+                *end = Some(load_entry(&mut from)?);
             }
             StreamMagic::User => {
-                // BORROW CHECKER
-                let end = path.len() - 1;
-                let end = &mut path[end];
-
-                end.entry.as_mut().ok_or("user without entry")?.user_name =
+                path.end_entry()
+                    .as_mut()
+                    .ok_or("user without entry")?
+                    .user_name =
                     Some(read_string_record(header_size, &mut from)?.into_boxed_slice());
             }
             StreamMagic::Group => {
-                // BORROW CHECKER
-                let end = path.len() - 1;
-                let end = &mut path[end];
-
-                end.entry.as_mut().ok_or("group without entry")?.group_name =
+                path.end_entry()
+                    .as_mut()
+                    .ok_or("group without entry")?
+                    .group_name =
                     Some(read_string_record(header_size, &mut from)?.into_boxed_slice());
             }
             StreamMagic::Name => {

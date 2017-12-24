@@ -57,7 +57,7 @@ fn load_nums() {
     let mut stream = casync_format::Stream::new(reader);
     while let Some(path_content) = stream.next().unwrap() {
         let (path, content) = path_content;
-        let last = path[path.len() - 1].clone();
+        let last = path.end().clone();
         let names: Vec<Box<[u8]>> = path.into_iter().map(|item| item.name).collect();
 
         paths.push(casync_format::utf8_path(names).unwrap());
