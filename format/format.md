@@ -87,6 +87,10 @@ item: name: . [this record is implicit]
   item-end; without any data
 ```
 
+The disadvantage of processing the data this way is that you're not sure
+you've seen a directory until you see the end of the directory. Could
+ignore validation, if you wanted...
+
 ## Packet format
 
  * `leu64` length, inclusive of this header

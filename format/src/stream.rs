@@ -10,14 +10,39 @@ use byteorder::{LittleEndian, ReadBytesExt};
 
 const HEADER_TAG_LEN: u64 = 16;
 
+pub struct Item {
+    pub name: Box<[u8]>,
+    pub entry: Option<Entry>,
+}
+
 #[derive(Default)]
 pub struct Entry {
     pub mode: u64,
     pub uid: u64,
     pub gid: u64,
     pub mtime: u64,
-    pub user_name: Option<Vec<u8>>,
-    pub group_name: Option<Vec<u8>>,
+    pub user_name: Option<Box<[u8]>>,
+    pub group_name: Option<Box<[u8]>>,
+}
+
+impl Item {
+    fn new(name: &str) -> Item {
+        Item {
+            name: name.to_string().into_bytes().into_boxed_slice(),
+            entry: None,
+        }
+    }
+}
+
+impl fmt::Debug for Item {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Item {{ {:?}, {:?} }}",
+            String::from_utf8_lossy(self.name.as_ref()),
+            self.entry,
+        )
+    }
 }
 
 impl fmt::Debug for Entry {
@@ -51,16 +76,10 @@ impl Entry {
     }
 }
 
-pub fn read_stream<R: Read, F>(mut from: R, mut into: F) -> Result<()>
-where
-    F: FnMut(&[Vec<u8>], Entry, Option<io::Take<&mut R>>) -> Result<()>,
-{
-    let mut current: Option<Entry> = None;
-    // State machine here is maintained using the depth of path;
-    // when we see a goodbye and that leaves the path array empty,
-    // we're at the end of the archive
+pub fn read_stream<R: Read>(mut from: R) -> Result<()> {
+    let mut path = Vec::with_capacity(10);
+    path.push(Item::new("."));
 
-    let mut path = vec![];
     loop {
         let header_size = leu64(&mut from)?;
         let header_format = StreamMagic::from(leu64(&mut from)?)?;
@@ -73,16 +92,28 @@ where
                     header_size
                 );
 
-                ensure!(current.is_none(), "entry found without data");
-                current = Some(load_entry(&mut from)?);
+                // BORROW CHECKER
+                let end = path.len() - 1;
+                let end = &mut path[end];
+
+                ensure!(end.entry.is_none(), "entry found without data");
+                end.entry = Some(load_entry(&mut from)?);
             }
             StreamMagic::User => {
-                current.as_mut().ok_or("user without entry")?.user_name =
-                    Some(read_string_record(header_size, &mut from)?);
+                // BORROW CHECKER
+                let end = path.len() - 1;
+                let end = &mut path[end];
+
+                end.entry.as_mut().ok_or("user without entry")?.user_name =
+                    Some(read_string_record(header_size, &mut from)?.into_boxed_slice());
             }
             StreamMagic::Group => {
-                current.as_mut().ok_or("group without entry")?.group_name =
-                    Some(read_string_record(header_size, &mut from)?);
+                // BORROW CHECKER
+                let end = path.len() - 1;
+                let end = &mut path[end];
+
+                end.entry.as_mut().ok_or("group without entry")?.group_name =
+                    Some(read_string_record(header_size, &mut from)?.into_boxed_slice());
             }
             StreamMagic::Name => {
                 let mut new_name = read_data_record(header_size, &mut from)?;
@@ -95,18 +126,10 @@ where
                     "filename must be non-empty and null-terminated"
                 );
 
-                if let Some(current) = current {
-                    // if we're currently in an Entry, then a new filename indicates a new,
-                    // nested archive, which continues until the Goodbye pops it off the end
-                    into(&path, current, None)?;
-                    path.push(new_name);
-                } else {
-                    // if we're not in an entry, we're just updating the current filename
-                    let last_element = path.len() - 1;
-                    path[last_element] = new_name;
-                }
-
-                current = None;
+                path.push(Item {
+                    name: new_name.into_boxed_slice(),
+                    entry: None,
+                });
             }
             StreamMagic::Data => {
                 ensure!(
@@ -114,16 +137,17 @@ where
                     "data <0 bytes long: {}",
                     header_size
                 );
-                into(
-                    &path,
-                    current.ok_or("payload without entry")?,
-                    Some((&mut from).take(header_size - HEADER_TAG_LEN)),
-                )?;
-                current = None;
+                let mut buf = Vec::new();
+                (&mut from)
+                    .take(header_size - HEADER_TAG_LEN)
+                    .read_to_end(&mut buf)?;
+                println!("file of {} bytes: {:?}", buf.len(), path);
+                path.pop().unwrap();
             }
             StreamMagic::Bye => {
                 // TODO: all kinds of tailing records
                 read_data_record(header_size, &mut from)?;
+                println!("directory: {:?}", path);
                 path.pop();
                 if path.is_empty() {
                     return Ok(());

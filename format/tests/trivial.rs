@@ -19,6 +19,12 @@ fn load_index() {
     }
 }
 
+#[test]
+fn two() {
+    let file = &include_bytes!("data/two.catar")[..];
+    casync_format::read_stream(io::Cursor::new(file)).unwrap();
+}
+
 /// rm -rf nums; mkdir nums && seq 10000 > nums/data && casync make --store=nums.castr nums.caidx nums
 #[test]
 fn load_nums() {
@@ -38,7 +44,9 @@ fn load_nums() {
 
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
-    casync_format::read_stream(reader, |path, entry, data| {
+    casync_format::read_stream(reader).unwrap();
+    /*
+    , |path, entry, data| {
         println!("{}, {:?}", path.len(), entry);
         let mut buf = vec![];
         if data.is_some() {
@@ -46,4 +54,5 @@ fn load_nums() {
         }
         Ok(())
     }).unwrap();
+    */
 }

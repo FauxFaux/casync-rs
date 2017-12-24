@@ -103,7 +103,11 @@ fn fast_export(castr: &str, caidx: &str) -> Result<()> {
 
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
-    casync_format::read_stream(reader, |path, entry, data| {
+    casync_format::read_stream(reader
+    )?;
+    Ok(())
+    /*
+    , |path, entry, data| {
         if entry.is_dir() {
             ensure!(data.is_none(), "data for directory");
             return Ok(());
@@ -127,6 +131,7 @@ fn fast_export(castr: &str, caidx: &str) -> Result<()> {
 
         Ok(())
     }).chain_err(|| format!("reading stream of index {}", caidx))
+    */
 }
 
 fn mtree(castr: &str, caidx: &str) -> Result<()> {
@@ -149,7 +154,9 @@ fn mtree(castr: &str, caidx: &str) -> Result<()> {
 
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
-    casync_format::read_stream(reader, |path, entry, data| {
+    casync_format::read_stream(reader)?;
+    /*
+    , |path, entry, data| {
         println!("{}, {:?}", casync_format::utf8_path(path)?, entry);
         let mut buf = vec![];
         if data.is_some() {
@@ -157,6 +164,8 @@ fn mtree(castr: &str, caidx: &str) -> Result<()> {
         }
         Ok(())
     }).chain_err(|| format!("reading stream of index {}", caidx))
+    */
+    Ok(())
 }
 
 quick_main!(run);
