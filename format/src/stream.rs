@@ -152,7 +152,6 @@ fn load_entry<R: Read>(mut from: R) -> Result<Entry> {
 pub fn dump_packets<R: Read>(mut from: R) -> Result<()> {
     let mut in_entry = false;
     let mut depth = 0usize;
-    let mut indent = 0usize;
     loop {
         let header_size = leu64(&mut from)?;
         let header_format = StreamMagic::from(leu64(&mut from)?)?;
@@ -162,7 +161,7 @@ pub fn dump_packets<R: Read>(mut from: R) -> Result<()> {
         from.read_exact(&mut payload)?;
         print!(
             "{} * {:5} | {:3} | ",
-            String::from_utf8(vec![b' '; indent * 2]).unwrap(),
+            String::from_utf8(vec![b' '; depth * 2]).unwrap(),
             format!("{:?}", header_format),
             payload_len
         );
@@ -171,31 +170,19 @@ pub fn dump_packets<R: Read>(mut from: R) -> Result<()> {
             StreamMagic::Entry => {
                 let entry = load_entry(io::Cursor::new(&payload))?;
                 println!("dir: {}", entry.is_dir());
-
-                in_entry = true;
-                indent += 1;
             }
             StreamMagic::Data => {
                 println!();
 
-                indent -= 1;
-                in_entry = false;
+                depth -= 1;
             }
             StreamMagic::Name => {
-                print!("{}", String::from_utf8_lossy(&payload[..payload.len() - 1]));
-
-                if in_entry {
-                    depth += 1;
-                    println!(", in entry, depth now {}", depth);
-                } else {
-                    println!(", outside entry, depth still {}", depth);
-                }
+                println!("{}", String::from_utf8_lossy(&payload[..payload.len() - 1]));
+                depth += 1;
             }
             StreamMagic::Bye => {
+                println!();
                 depth -= 1;
-                indent -= 1;
-
-                println!("leaving entry, depth now {}", depth);
 
                 if 0 == depth {
                     return Ok(());
