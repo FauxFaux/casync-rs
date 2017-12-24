@@ -228,7 +228,6 @@ fn load_entry<R: Read>(mut from: R) -> Result<Entry> {
 }
 
 pub fn dump_packets<R: Read>(mut from: R) -> Result<()> {
-    let mut in_entry = false;
     let mut depth = 0usize;
     loop {
         let header_size = leu64(&mut from)?;
@@ -294,10 +293,10 @@ fn read_data_record<R: Read>(header_size: u64, mut from: R) -> Result<Vec<u8>> {
     Ok(buf)
 }
 
-pub fn utf8_path(from: &[Vec<u8>]) -> std::result::Result<String, ::std::string::FromUtf8Error> {
+pub fn utf8_path(from: Vec<Box<[u8]>>) -> std::result::Result<String, ::std::string::FromUtf8Error> {
     let mut ret = String::new();
     for component in from {
-        ret.push_str(String::from_utf8(component.clone())?.as_str());
+        ret.push_str(String::from_utf8(component.into_vec())?.as_str());
         ret.push_str("/");
     }
 

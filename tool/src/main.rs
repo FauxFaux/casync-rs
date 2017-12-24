@@ -103,33 +103,37 @@ fn fast_export(castr: &str, caidx: &str) -> Result<()> {
 
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
-    unimplemented!();
-    /*
-    , |path, entry, data| {
-        if entry.is_dir() {
-            ensure!(data.is_none(), "data for directory");
-            return Ok(());
+    let mut stream = casync_format::Stream::new(reader);
+    while let Some(path_content) = stream.next().chain_err(|| format!("reading stream of index {}", caidx))? {
+        let (path, content) = path_content;
+        let last = path[path.len() - 1].clone();
+        let names: Vec<Box<[u8]>> = path.into_iter().map(|item| item.name).collect();
+
+        let last_entry = match last.entry {
+            Some(x) => x,
+            None => bail!("no entry for item"),
+        };
+
+        match content {
+            casync_format::Content::File(mut data) => {
+                ensure!(last_entry.is_reg(), "TODO: data for non-regular file");
+
+                let executable = 0o100 == (last_entry.mode & 0o100);
+
+                println!(
+                    "M {} inline {}",
+                    if executable { "100755" } else { "100644" },
+                    casync_format::utf8_path(names)?
+                );
+                println!("data {}", data.limit());
+                io::copy(&mut data, &mut io::stdout())?;
+            }
+            casync_format::Content::Directory => {
+                ensure!(last_entry.is_dir(), "directory end for non-directory");
+            }
         }
-
-        let mut data = data.ok_or("non-directory has no contents")?;
-
-        ensure!(
-            entry.is_reg(),
-            "only directories and regular files are supported"
-        );
-        let executable = 0o100 == (entry.mode & 0o100);
-
-        println!(
-            "M {} inline {}",
-            if executable { "100755" } else { "100644" },
-            casync_format::utf8_path(path)?
-        );
-        println!("data {}", data.limit());
-        io::copy(&mut data, &mut io::stdout())?;
-
-        Ok(())
-    }).chain_err(|| format!("reading stream of index {}", caidx))
-    */
+    }
+    Ok(())
 }
 
 fn mtree(castr: &str, caidx: &str) -> Result<()> {
@@ -152,17 +156,21 @@ fn mtree(castr: &str, caidx: &str) -> Result<()> {
 
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
-    unimplemented!();
-    /*
-    , |path, entry, data| {
-        println!("{}, {:?}", casync_format::utf8_path(path)?, entry);
-        let mut buf = vec![];
-        if data.is_some() {
-            data.unwrap().read_to_end(&mut buf)?;
+    let mut stream = casync_format::Stream::new(reader);
+    while let Some(path_content) = stream.next().chain_err(|| format!("reading stream of index {}", caidx))? {
+        let (path, content) = path_content;
+        let last = path[path.len() - 1].clone();
+        let names: Vec<Box<[u8]>> = path.into_iter().map(|item| item.name).collect();
+        println!("{}, {:?}", casync_format::utf8_path(names)?, last);
+
+        match content {
+            casync_format::Content::File(mut data) => {
+                let mut buf = Vec::new();
+                data.read_to_end(&mut buf)?;
+            }
+            casync_format::Content::Directory => {}
         }
-        Ok(())
-    }).chain_err(|| format!("reading stream of index {}", caidx))
-    */
+    }
     Ok(())
 }
 

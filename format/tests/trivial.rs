@@ -28,7 +28,7 @@ fn two() {
         println!("{:?} {:?}", path, content);
         if let casync_format::Content::File(mut io) = content {
             let mut buf = Vec::with_capacity(io.limit() as usize);
-            io.read_to_end(&mut buf);
+            io.read_to_end(&mut buf).unwrap();
         }
     }
 }
@@ -52,15 +52,29 @@ fn load_nums() {
 
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
-    unimplemented!()
-    /*
-    , |path, entry, data| {
-        println!("{}, {:?}", path.len(), entry);
-        let mut buf = vec![];
-        if data.is_some() {
-            data.unwrap().read_to_end(&mut buf)?;
+    let mut paths = Vec::new();
+
+    let mut stream = casync_format::Stream::new(reader);
+    while let Some(path_content) = stream.next().unwrap() {
+        let (path, content) = path_content;
+        let last = path[path.len() - 1].clone();
+        let names: Vec<Box<[u8]>> = path.into_iter().map(|item| item.name).collect();
+
+        paths.push(casync_format::utf8_path(names).unwrap());
+
+        match content {
+            casync_format::Content::File(mut data) => {
+                let mut buf = Vec::new();
+                data.read_to_end(&mut buf).unwrap();
+            }
+            casync_format::Content::Directory => {}
         }
-        Ok(())
-    }).unwrap();
-    */
+    }
+
+    assert_eq!(&[
+        "./data".to_string(),
+        ".".to_string(),
+    ],
+    paths.as_slice()
+    )
 }
