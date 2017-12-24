@@ -10,12 +10,13 @@ use byteorder::{LittleEndian, ReadBytesExt};
 
 const HEADER_TAG_LEN: u64 = 16;
 
+#[derive(Clone)]
 pub struct Item {
     pub name: Box<[u8]>,
     pub entry: Option<Entry>,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Entry {
     pub mode: u64,
     pub uid: u64,
@@ -76,10 +77,57 @@ impl Entry {
     }
 }
 
-pub fn read_stream<R: Read>(mut from: R) -> Result<()> {
-    let mut path = Vec::with_capacity(10);
-    path.push(Item::new("."));
+pub struct Stream<R: Read> {
+    inner: R,
+    path: Vec<Item>,
+}
 
+impl<R: Read> Stream<R> {
+    pub fn new(inner: R) -> Stream<R> {
+        Stream {
+            inner,
+            path: vec![Item::new(".")],
+        }
+    }
+
+    pub fn as_ref(&self) -> &R {
+        &self.inner
+    }
+
+    pub fn as_mut(&mut self) -> &mut R {
+        &mut self.inner
+    }
+
+    pub fn into_inner(self) -> R {
+        self.inner
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum ItemType {
+    File(u64),
+    Directory,
+}
+
+impl<R: Read> Iterator for Stream<R> {
+    type Item = Result<(Vec<Item>, ItemType)>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.path.is_empty() {
+            return None;
+        }
+        match process_item(&mut self.inner, &mut self.path) {
+            Ok(item) => {
+                let copy = self.path.clone();
+                self.path.pop();
+                Some(Ok((copy, item)))
+            },
+            Err(e) => Some(Err(e)),
+        }
+    }
+}
+
+pub fn process_item<R: Read>(mut from: &mut R, path: &mut Vec<Item>) -> Result<ItemType> {
     loop {
         let header_size = leu64(&mut from)?;
         let header_format = StreamMagic::from(leu64(&mut from)?)?;
@@ -137,21 +185,12 @@ pub fn read_stream<R: Read>(mut from: R) -> Result<()> {
                     "data <0 bytes long: {}",
                     header_size
                 );
-                let mut buf = Vec::new();
-                (&mut from)
-                    .take(header_size - HEADER_TAG_LEN)
-                    .read_to_end(&mut buf)?;
-                println!("file of {} bytes: {:?}", buf.len(), path);
-                path.pop().unwrap();
+                return Ok(ItemType::File(header_size - HEADER_TAG_LEN));
             }
             StreamMagic::Bye => {
                 // TODO: all kinds of tailing records
                 read_data_record(header_size, &mut from)?;
-                println!("directory: {:?}", path);
-                path.pop();
-                if path.is_empty() {
-                    return Ok(());
-                }
+                return Ok(ItemType::Directory);
             }
         }
     }

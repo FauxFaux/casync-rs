@@ -103,9 +103,7 @@ fn fast_export(castr: &str, caidx: &str) -> Result<()> {
 
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
-    casync_format::read_stream(reader
-    )?;
-    Ok(())
+    unimplemented!();
     /*
     , |path, entry, data| {
         if entry.is_dir() {
@@ -154,7 +152,7 @@ fn mtree(castr: &str, caidx: &str) -> Result<()> {
 
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
-    casync_format::read_stream(reader)?;
+    unimplemented!();
     /*
     , |path, entry, data| {
         println!("{}, {:?}", casync_format::utf8_path(path)?, entry);
