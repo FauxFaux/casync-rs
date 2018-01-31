@@ -86,9 +86,10 @@ impl<'c> Fetcher<'c> {
                 bail!("couldn't download chunk: {}\nurl: {}", resp.status(), uri);
             }
 
-            let mut temp = tempfile_fast::PersistableTempFile::new_in(&self.local_store).chain_err(
-                || format!("creating temporary directory inside {:?}", self.local_store),
-            )?;
+            let mut temp = tempfile_fast::PersistableTempFile::new_in(&self.local_store)
+                .chain_err(|| {
+                    format!("creating temporary directory inside {:?}", self.local_store)
+                })?;
             let written = io::copy(&mut resp, &mut temp)?;
 
             if let Some(&header::ContentLength(expected)) =
