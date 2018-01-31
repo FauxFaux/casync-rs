@@ -86,10 +86,10 @@ impl<'c> Fetcher<'c> {
                 bail!("couldn't download chunk: {}\nurl: {}", resp.status(), uri);
             }
 
-            let mut temp = tempfile_fast::persistable_tempfile_in(&self.local_store).chain_err(
+            let mut temp = tempfile_fast::PersistableTempFile::new_in(&self.local_store).chain_err(
                 || format!("creating temporary directory inside {:?}", self.local_store),
             )?;
-            let written = io::copy(&mut resp, temp.as_mut())?;
+            let written = io::copy(&mut resp, &mut temp)?;
 
             if let Some(&header::ContentLength(expected)) =
                 resp.headers().get::<header::ContentLength>()
@@ -106,6 +106,7 @@ impl<'c> Fetcher<'c> {
 
             // TODO: ignore already-exists errors
             temp.persist_noclobber(&chunk_path)
+                .map_err(|e| e.error)
                 .chain_err(|| format!("storing downloaded chunk into: {:?}", chunk_path))?;
         }
 

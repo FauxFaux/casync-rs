@@ -7,4 +7,4 @@ authors = ["Chris West (Faux) <git@goeswhere.com>"]
 casync-format = { path = "../format" }
 error-chain = "0.11"
 reqwest = "0.8"
-tempfile-fast = "0.1"
+tempfile-fast = "0.2"
