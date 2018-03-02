@@ -3,10 +3,12 @@ use std::io;
 use std::io::Read;
 use std::fmt;
 
+use byteorder::LittleEndian;
+use byteorder::ReadBytesExt;
+use cast::usize;
+
 use errors::*;
 use format::StreamMagic;
-
-use byteorder::{LittleEndian, ReadBytesExt};
 
 const HEADER_TAG_LEN: u64 = 16;
 const RECORD_SIZE_LIMIT: u64 = 64 * 1024;
@@ -264,7 +266,7 @@ pub fn dump_packets<R: Read>(mut from: R) -> Result<()> {
         let header_format = StreamMagic::from(leu64(&mut from)?)?;
 
         let payload_len = header_size - 16;
-        let mut payload = vec![0; usize_from(payload_len)];
+        let mut payload = vec![0; usize(payload_len)];
         from.read_exact(&mut payload)?;
         print!(
             "{} * {:5} | {:3} | ",
@@ -354,9 +356,4 @@ pub fn utf8_path(
 
 fn leu64<R: Read>(mut from: R) -> io::Result<u64> {
     from.read_u64::<LittleEndian>()
-}
-
-fn usize_from(val: u64) -> usize {
-    assert!(val <= std::usize::MAX as u64);
-    val as usize
 }
