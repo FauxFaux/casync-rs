@@ -47,6 +47,7 @@ where
 mod tests {
     use std::io;
     use std::io::Read;
+
     use chunks::ChunkReader;
 
     #[test]

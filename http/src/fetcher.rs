@@ -2,13 +2,13 @@ use casync_format;
 use tempfile_fast;
 
 use std::fs;
-use std::mem;
 use std::io;
+use std::mem;
 use std::path;
 
 use casync_format::Chunk;
-use casync_format::format_chunk_id;
 use casync_format::ChunkId;
+use casync_format::format_chunk_id;
 use reqwest::Client;
 use reqwest::header;
 

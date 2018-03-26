@@ -14,12 +14,12 @@ pub use errors::*;
 
 pub use chunks::ChunkReader;
 pub use format::ChunkId;
+pub use index::Chunk;
 pub use index::format_chunk_id;
 pub use index::read_index;
-pub use index::Chunk;
-pub use stream::dump_packets;
-pub use stream::utf8_path;
 pub use stream::Content;
 pub use stream::Entry;
 pub use stream::Item;
 pub use stream::Stream;
+pub use stream::dump_packets;
+pub use stream::utf8_path;

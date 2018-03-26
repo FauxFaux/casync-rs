@@ -2,8 +2,8 @@ use std;
 use std::fmt;
 use std::fs;
 use std::io;
-use std::path;
 use std::io::Read;
+use std::path;
 
 use errors::*;
 use format::ChunkId;

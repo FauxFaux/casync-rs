@@ -1,7 +1,7 @@
 extern crate casync_format;
 
-use std::io;
 use std::fs;
+use std::io;
 
 use std::io::Read;
 

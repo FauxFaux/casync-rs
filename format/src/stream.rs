@@ -1,7 +1,7 @@
 use std;
+use std::fmt;
 use std::io;
 use std::io::Read;
-use std::fmt;
 
 use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
