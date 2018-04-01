@@ -122,14 +122,6 @@ impl<R: Read> Stream<R> {
         }
     }
 
-    pub fn as_ref(&self) -> &R {
-        &self.inner
-    }
-
-    pub fn as_mut(&mut self) -> &mut R {
-        &mut self.inner
-    }
-
     pub fn into_inner(self) -> R {
         self.inner
     }
@@ -147,6 +139,18 @@ impl<R: Read> Stream<R> {
                 item.into_content(move |limit| (&mut self.inner).take(limit)),
             ))
         })
+    }
+}
+
+impl<R: Read> AsRef<R> for Stream<R> {
+    fn as_ref(&self) -> &R {
+        &self.inner
+    }
+}
+
+impl<R: Read> AsMut<R> for Stream<R> {
+    fn as_mut(&mut self) -> &mut R {
+        &mut self.inner
     }
 }
 
