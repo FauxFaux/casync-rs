@@ -6,11 +6,11 @@ use std::io;
 use std::mem;
 use std::path;
 
+use casync_format::format_chunk_id;
 use casync_format::Chunk;
 use casync_format::ChunkId;
-use casync_format::format_chunk_id;
-use reqwest::Client;
 use reqwest::header;
+use reqwest::Client;
 
 use errors::*;
 
@@ -122,19 +122,24 @@ impl<'c> Fetcher<'c> {
     pub fn read_cache<'r, I, F>(&self, mut chunks: I, into: F) -> Result<()>
     where
         I: Iterator<Item = Chunk>,
-        F: FnMut(&'r [Vec<u8>], casync_format::Entry, Option<Box<io::Read>>)
-            -> casync_format::Result<()>,
+        F: FnMut(
+            &'r [Vec<u8>],
+            casync_format::Entry,
+            Option<Box<io::Read>>,
+        ) -> casync_format::Result<()>,
     {
         let reader = casync_format::ChunkReader::new(|| {
             Ok(match chunks.next() {
                 Some(chunk) => Some(chunk.open_from(self.local_store)?),
                 None => None,
             })
-        }).chain_err(|| "initialising reader")?;
+        })
+        .chain_err(|| "initialising reader")?;
 
         casync_format::read_stream(reader, |v, e, r| {
             into(v, e, r.map(|t| Box::new(t) as Box<io::Read>))?;
             Ok(())
-        }).chain_err(|| "reading stream")
+        })
+        .chain_err(|| "reading stream")
     }
 }

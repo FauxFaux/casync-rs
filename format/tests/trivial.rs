@@ -12,7 +12,8 @@ fn load_index() {
     casync_format::read_index(file, |chunk| {
         v.push(chunk);
         Ok(())
-    }).unwrap();
+    })
+    .unwrap();
 
     for chunk in v {
         println!("{:?}", chunk)
@@ -41,14 +42,17 @@ fn load_nums() {
     casync_format::read_index(file, |chunk| {
         v.push(chunk);
         Ok(())
-    }).unwrap();
+    })
+    .unwrap();
 
     let mut it = v.into_iter();
 
     let reader = casync_format::ChunkReader::new(|| {
-        Ok(it.next()
+        Ok(it
+            .next()
             .map(|chunk| chunk.open_from("tests/data/nums.castr").unwrap()))
-    }).unwrap();
+    })
+    .unwrap();
 
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 

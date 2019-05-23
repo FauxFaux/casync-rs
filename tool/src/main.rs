@@ -20,7 +20,8 @@ fn takes_indexes<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
             .help("the index file(s) to inspect")
             .required(true)
             .multiple(true),
-    ).arg(
+    )
+    .arg(
         Arg::with_name("store")
             .help("the castore which the indexes reference")
             .long("store")
@@ -90,7 +91,8 @@ fn fast_export(castr: &str, caidx: &str) -> Result<()> {
     casync_format::read_index(file, |chunk| {
         v.push(chunk);
         Ok(())
-    }).chain_err(|| "reading index file")?;
+    })
+    .chain_err(|| "reading index file")?;
 
     let mut it = v.into_iter();
 
@@ -99,7 +101,8 @@ fn fast_export(castr: &str, caidx: &str) -> Result<()> {
             Some(chunk) => Some(chunk.open_from(castr)?),
             None => None,
         })
-    }).chain_err(|| "initialising reader")?;
+    })
+    .chain_err(|| "initialising reader")?;
 
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
@@ -146,7 +149,8 @@ fn mtree(castr: &str, caidx: &str) -> Result<()> {
     casync_format::read_index(file, |chunk| {
         v.push(chunk);
         Ok(())
-    }).chain_err(|| "reading index file")?;
+    })
+    .chain_err(|| "reading index file")?;
 
     let mut it = v.into_iter();
 
@@ -155,7 +159,8 @@ fn mtree(castr: &str, caidx: &str) -> Result<()> {
             Some(chunk) => Some(chunk.open_from(castr)?),
             None => None,
         })
-    }).chain_err(|| "initialising reader")?;
+    })
+    .chain_err(|| "initialising reader")?;
 
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
