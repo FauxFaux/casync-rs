@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "format",
-    "http",
-    "tool",
+    "casync-format",
+    "casync",
 ]

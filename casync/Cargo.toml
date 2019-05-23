@@ -1,12 +1,20 @@
 [package]
-name = "casync-http"
+name = "casync"
 version = "0.1.0"
 authors = ["Chris West (Faux) <git@goeswhere.com>"]
 
 edition = "2018"
 
 [dependencies]
-casync-format = { path = "../format" }
+casync-format = { path = "../casync-format" }
 failure = "0.1"
 reqwest = "0.9"
 tempfile-fast = "0.3"
+
+[dependencies.clap]
+optional = true
+version = "2"
+
+[[bin]]
+name = "casync"
+required-features = ["clap"]
