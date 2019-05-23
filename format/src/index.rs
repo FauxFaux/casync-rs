@@ -60,7 +60,7 @@ impl Chunk {
     pub fn open_from<P: AsRef<path::Path>>(
         &self,
         castr_path: P,
-    ) -> io::Result<zstd::Decoder<fs::File>> {
+    ) -> io::Result<zstd::Decoder<io::BufReader<fs::File>>> {
         let mut buf = castr_path.as_ref().to_path_buf();
         buf.push(self.format_id());
         zstd::Decoder::new(fs::File::open(buf)?)

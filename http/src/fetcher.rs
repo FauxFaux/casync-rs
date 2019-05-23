@@ -9,7 +9,6 @@ use std::path;
 use casync_format::format_chunk_id;
 use casync_format::Chunk;
 use casync_format::ChunkId;
-use reqwest::header;
 use reqwest::Client;
 
 use errors::*;
@@ -44,10 +43,7 @@ impl<'c> Fetcher<'c> {
         if !resp.status().is_success() {
             bail!("request failed: {}", resp.status());
         }
-        let estimated_length = match resp.headers().get::<header::ContentLength>() {
-            Some(&header::ContentLength(len)) => len,
-            _ => 1337,
-        };
+        let estimated_length = resp.content_length().unwrap_or(1337);
 
         let estimated_length = estimated_length as usize / mem::size_of::<Chunk>();
         let mut chunks = Vec::with_capacity(estimated_length);
@@ -92,9 +88,7 @@ impl<'c> Fetcher<'c> {
                 })?;
             let written = io::copy(&mut resp, &mut temp)?;
 
-            if let Some(&header::ContentLength(expected)) =
-                resp.headers().get::<header::ContentLength>()
-            {
+            if let Some(expected) = resp.content_length() {
                 ensure!(
                     written == expected,
                     "data wasn't the right length, actual: {}, expected: {}",
