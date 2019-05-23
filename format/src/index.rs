@@ -5,12 +5,14 @@ use std::io;
 use std::io::Read;
 use std::path;
 
-use crate::errors::*;
+use byteorder::ReadBytesExt;
+use byteorder::LE;
+use failure::bail;
+use failure::ensure;
+use failure::Error;
+
 use crate::format::ChunkId;
 use crate::format::IndexMagic;
-use zstd;
-
-use byteorder::{LittleEndian, ReadBytesExt};
 
 struct ChunkSize {
     min: u64,
@@ -19,7 +21,7 @@ struct ChunkSize {
 }
 
 impl ChunkSize {
-    fn new(min: u64, avg: u64, max: u64) -> Result<ChunkSize> {
+    fn new(min: u64, avg: u64, max: u64) -> Result<ChunkSize, Error> {
         ensure!(min >= 1, "minimum chunk size is too low");
         ensure!(max <= 128 * 1024 * 1024, "maximum chunk size is too high");
         ensure!(avg <= max && avg >= min, "avg chunk size is out of range");
@@ -67,9 +69,9 @@ impl Chunk {
     }
 }
 
-pub fn read_index<R: Read, F>(mut from: R, mut into: F) -> Result<()>
+pub fn read_index<R: Read, F>(mut from: R, mut into: F) -> Result<(), Error>
 where
-    F: FnMut(Chunk) -> Result<()>,
+    F: FnMut(Chunk) -> Result<(), Error>,
 {
     {
         let header_size = leu64(&mut from)?;
@@ -118,5 +120,5 @@ where
 }
 
 fn leu64<R: Read>(mut from: R) -> io::Result<u64> {
-    from.read_u64::<LittleEndian>()
+    from.read_u64::<LE>()
 }

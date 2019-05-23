@@ -1,13 +1,7 @@
-#[macro_use]
-extern crate error_chain;
-
 mod chunks;
-mod errors;
 mod format;
 mod index;
 mod stream;
-
-pub use crate::errors::*;
 
 pub use crate::chunks::ChunkReader;
 pub use crate::format::ChunkId;

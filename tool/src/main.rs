@@ -1,16 +1,15 @@
-#[macro_use]
-extern crate error_chain;
-
-mod errors;
-
 use std::fs;
 use std::io;
 use std::io::Read;
 
 use casync_format::Chunk;
 use clap::{App, AppSettings, Arg, SubCommand};
-
-use crate::errors::*;
+use failure::bail;
+use failure::ensure;
+use failure::err_msg;
+use failure::format_err;
+use failure::Error;
+use failure::ResultExt;
 
 fn takes_indexes<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
     app.arg(
@@ -28,7 +27,7 @@ fn takes_indexes<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
     )
 }
 
-fn run() -> Result<()> {
+fn main() -> Result<(), Error> {
     let matches = App::new("casync-rs")
         .setting(AppSettings::SubcommandRequired)
         .subcommand(takes_indexes(
@@ -82,15 +81,15 @@ fn run() -> Result<()> {
     Ok(())
 }
 
-fn fast_export(castr: &str, caidx: &str) -> Result<()> {
-    let file = fs::File::open(caidx).chain_err(|| "opening index file")?;
+fn fast_export(castr: &str, caidx: &str) -> Result<(), Error> {
+    let file = fs::File::open(caidx).with_context(|_| err_msg("opening index file"))?;
 
     let mut v: Vec<Chunk> = vec![];
     casync_format::read_index(file, |chunk| {
         v.push(chunk);
         Ok(())
     })
-    .chain_err(|| "reading index file")?;
+    .with_context(|_| err_msg("reading index file"))?;
 
     let mut it = v.into_iter();
 
@@ -100,14 +99,14 @@ fn fast_export(castr: &str, caidx: &str) -> Result<()> {
             None => None,
         })
     })
-    .chain_err(|| "initialising reader")?;
+    .with_context(|_| err_msg("initialising reader"))?;
 
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
     let mut stream = casync_format::Stream::new(reader);
     while let Some(path_content) = stream
         .next()
-        .chain_err(|| format!("reading stream of index {}", caidx))?
+        .with_context(|_| format_err!("reading stream of index {}", caidx))?
     {
         let (path, content) = path_content;
         let last = path.end().clone();
@@ -140,15 +139,15 @@ fn fast_export(castr: &str, caidx: &str) -> Result<()> {
     Ok(())
 }
 
-fn mtree(castr: &str, caidx: &str) -> Result<()> {
-    let file = fs::File::open(caidx).chain_err(|| "opening index file")?;
+fn mtree(castr: &str, caidx: &str) -> Result<(), Error> {
+    let file = fs::File::open(caidx).with_context(|_| err_msg("opening index file"))?;
 
     let mut v: Vec<Chunk> = vec![];
     casync_format::read_index(file, |chunk| {
         v.push(chunk);
         Ok(())
     })
-    .chain_err(|| "reading index file")?;
+    .with_context(|_| err_msg("reading index file"))?;
 
     let mut it = v.into_iter();
 
@@ -158,14 +157,14 @@ fn mtree(castr: &str, caidx: &str) -> Result<()> {
             None => None,
         })
     })
-    .chain_err(|| "initialising reader")?;
+    .with_context(|_| err_msg("initialising reader"))?;
 
     //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
 
     let mut stream = casync_format::Stream::new(reader);
     while let Some(path_content) = stream
         .next()
-        .chain_err(|| format!("reading stream of index {}", caidx))?
+        .with_context(|_| format_err!("reading stream of index {}", caidx))?
     {
         let (path, content) = path_content;
         let last = path.end().clone();
@@ -182,5 +181,3 @@ fn mtree(castr: &str, caidx: &str) -> Result<()> {
     }
     Ok(())
 }
-
-quick_main!(run);

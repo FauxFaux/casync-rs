@@ -1,7 +1,10 @@
 use std::io;
 use std::io::Read;
 
-use crate::errors::*;
+use failure::bail;
+use failure::err_msg;
+use failure::Error;
+use failure::ResultExt;
 
 pub struct ChunkReader<R, F> {
     inner: R,
@@ -12,9 +15,9 @@ impl<R: Read, F> ChunkReader<R, F>
 where
     F: FnMut() -> io::Result<Option<R>>,
 {
-    pub fn new(mut from: F) -> Result<Self> {
+    pub fn new(mut from: F) -> Result<Self, Error> {
         Ok(ChunkReader {
-            inner: match from().chain_err(|| "trying to fetch initial chunk")? {
+            inner: match from().with_context(|_| err_msg("trying to fetch initial chunk"))? {
                 Some(reader) => reader,
                 None => bail!("there must be at least one chunk"),
             },

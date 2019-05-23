@@ -3,11 +3,13 @@ use std::fmt;
 use std::io;
 use std::io::Read;
 
-use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
+use byteorder::LE;
 use cast::usize;
+use failure::ensure;
+use failure::err_msg;
+use failure::Error;
 
-use crate::errors::*;
 use crate::format::StreamMagic;
 
 const HEADER_TAG_LEN: u64 = 16;
@@ -126,7 +128,7 @@ impl<R: Read> Stream<R> {
         self.inner
     }
 
-    pub fn next(&mut self) -> Result<Option<(Path, Content<R>)>> {
+    pub fn next(&mut self) -> Result<Option<(Path, Content<R>)>, Error> {
         if self.path.is_empty() {
             return Ok(None);
         }
@@ -188,7 +190,7 @@ impl Path {
     }
 }
 
-fn process_item<R: Read>(mut from: &mut R, path: &mut Path) -> Result<ItemType> {
+fn process_item<R: Read>(mut from: &mut R, path: &mut Path) -> Result<ItemType, Error> {
     loop {
         let header_size = leu64(&mut from)?;
         let header_format = StreamMagic::from(leu64(&mut from)?)?;
@@ -209,14 +211,14 @@ fn process_item<R: Read>(mut from: &mut R, path: &mut Path) -> Result<ItemType> 
             StreamMagic::User => {
                 path.end_entry()
                     .as_mut()
-                    .ok_or("user without entry")?
+                    .ok_or_else(|| err_msg("user without entry"))?
                     .user_name =
                     Some(read_string_record(header_size, &mut from)?.into_boxed_slice());
             }
             StreamMagic::Group => {
                 path.end_entry()
                     .as_mut()
-                    .ok_or("group without entry")?
+                    .ok_or_else(|| err_msg("group without entry"))?
                     .group_name =
                     Some(read_string_record(header_size, &mut from)?.into_boxed_slice());
             }
@@ -247,7 +249,7 @@ fn process_item<R: Read>(mut from: &mut R, path: &mut Path) -> Result<ItemType> 
     }
 }
 
-fn load_entry<R: Read>(mut from: R) -> Result<Entry> {
+fn load_entry<R: Read>(mut from: R) -> Result<Entry, Error> {
     let mut entry = Entry::default();
 
     leu64(&mut from)?; // feature_flags
@@ -263,7 +265,7 @@ fn load_entry<R: Read>(mut from: R) -> Result<Entry> {
     Ok(entry)
 }
 
-pub fn dump_packets<R: Read>(mut from: R) -> Result<()> {
+pub fn dump_packets<R: Read>(mut from: R) -> Result<(), Error> {
     let mut depth = 0usize;
     loop {
         let header_size = leu64(&mut from)?;
@@ -308,7 +310,7 @@ pub fn dump_packets<R: Read>(mut from: R) -> Result<()> {
     }
 }
 
-fn read_string_record<R: Read>(header_size: u64, from: R) -> Result<Vec<u8>> {
+fn read_string_record<R: Read>(header_size: u64, from: R) -> Result<Vec<u8>, Error> {
     match read_data_record(header_size, from) {
         Ok(ref vec) if vec.is_empty() => Ok(Vec::new()),
         Ok(mut vec) => {
@@ -323,7 +325,7 @@ fn read_string_record<R: Read>(header_size: u64, from: R) -> Result<Vec<u8>> {
     }
 }
 
-fn read_data_record<R: Read>(header_size: u64, mut from: R) -> Result<Vec<u8>> {
+fn read_data_record<R: Read>(header_size: u64, mut from: R) -> Result<Vec<u8>, Error> {
     ensure!(
         header_size >= HEADER_TAG_LEN,
         "header missing / size wrong: {}",
@@ -359,5 +361,5 @@ pub fn utf8_path(
 }
 
 fn leu64<R: Read>(mut from: R) -> io::Result<u64> {
-    from.read_u64::<LittleEndian>()
+    from.read_u64::<LE>()
 }

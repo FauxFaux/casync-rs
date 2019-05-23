@@ -1,6 +1,3 @@
-use casync_format;
-use tempfile_fast;
-
 use std::fs;
 use std::io;
 use std::mem;
@@ -9,9 +6,12 @@ use std::path;
 use casync_format::format_chunk_id;
 use casync_format::Chunk;
 use casync_format::ChunkId;
+use failure::bail;
+use failure::ensure;
+use failure::format_err;
+use failure::Error;
+use failure::ResultExt;
 use reqwest::Client;
-
-use crate::errors::*;
 
 pub struct Fetcher<'c> {
     client: &'c Client,
@@ -26,7 +26,7 @@ impl<'c> Fetcher<'c> {
         mirror_root: &str,
         local_store: P,
         remote_store: &str,
-    ) -> Result<Self> {
+    ) -> Result<Self, Error> {
         Ok(Fetcher {
             client,
             mirror_root: mirror_root.to_string(),
@@ -35,7 +35,7 @@ impl<'c> Fetcher<'c> {
         })
     }
 
-    pub fn parse_whole_index(&self, rel_path: String) -> Result<Vec<Chunk>> {
+    pub fn parse_whole_index(&self, rel_path: String) -> Result<Vec<Chunk>, Error> {
         let uri = format!("{}{}", self.mirror_root, rel_path);
 
         let resp = self.client.get(&uri).send()?;
@@ -56,7 +56,7 @@ impl<'c> Fetcher<'c> {
         Ok(chunks)
     }
 
-    pub fn fetch_all_chunks<'a, I>(&self, chunks: I) -> Result<()>
+    pub fn fetch_all_chunks<'a, I>(&self, chunks: I) -> Result<(), Error>
     where
         I: Iterator<Item = &'a ChunkId>,
     {
@@ -83,8 +83,8 @@ impl<'c> Fetcher<'c> {
             }
 
             let mut temp = tempfile_fast::PersistableTempFile::new_in(&self.local_store)
-                .chain_err(|| {
-                    format!("creating temporary directory inside {:?}", self.local_store)
+                .with_context(|_| {
+                    format_err!("creating temporary directory inside {:?}", self.local_store)
                 })?;
             let written = io::copy(&mut resp, &mut temp)?;
 
@@ -102,7 +102,7 @@ impl<'c> Fetcher<'c> {
             // TODO: ignore already-exists errors
             temp.persist_noclobber(&chunk_path)
                 .map_err(|e| e.error)
-                .chain_err(|| format!("storing downloaded chunk into: {:?}", chunk_path))?;
+                .with_context(|_| format_err!("storing downloaded chunk into: {:?}", chunk_path))?;
         }
 
         Ok(())
@@ -113,7 +113,7 @@ impl<'c> Fetcher<'c> {
     }
 
     #[cfg(never)]
-    pub fn read_cache<'r, I, F>(&self, mut chunks: I, into: F) -> Result<()>
+    pub fn read_cache<'r, I, F>(&self, mut chunks: I, into: F) -> Result<(), Error>
     where
         I: Iterator<Item = Chunk>,
         F: FnMut(
@@ -128,12 +128,12 @@ impl<'c> Fetcher<'c> {
                 None => None,
             })
         })
-        .chain_err(|| "initialising reader")?;
+        .with_context(|_| err_msg("initialising reader"))?;
 
         casync_format::read_stream(reader, |v, e, r| {
             into(v, e, r.map(|t| Box::new(t) as Box<io::Read>))?;
             Ok(())
         })
-        .chain_err(|| "reading stream")
+        .with_context(|_| err_msg("reading stream"))
     }
 }
