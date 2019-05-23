@@ -7,8 +7,8 @@ use byteorder::LittleEndian;
 use byteorder::ReadBytesExt;
 use cast::usize;
 
-use errors::*;
-use format::StreamMagic;
+use crate::errors::*;
+use crate::format::StreamMagic;
 
 const HEADER_TAG_LEN: u64 = 16;
 const RECORD_SIZE_LIMIT: u64 = 64 * 1024;
@@ -221,7 +221,7 @@ fn process_item<R: Read>(mut from: &mut R, path: &mut Path) -> Result<ItemType> 
                     Some(read_string_record(header_size, &mut from)?.into_boxed_slice());
             }
             StreamMagic::Name => {
-                let mut new_name = read_string_record(header_size, &mut from)?;
+                let new_name = read_string_record(header_size, &mut from)?;
 
                 ensure!(!new_name.is_empty(), "filename must be non-empty");
 

@@ -1,7 +1,7 @@
 use std::io;
 use std::io::Read;
 
-use errors::*;
+use crate::errors::*;
 
 pub struct ChunkReader<R, F> {
     inner: R,
@@ -48,7 +48,7 @@ mod tests {
     use std::io;
     use std::io::Read;
 
-    use chunks::ChunkReader;
+    use crate::chunks::ChunkReader;
 
     #[test]
     fn cursors() {

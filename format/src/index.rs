@@ -5,9 +5,9 @@ use std::io;
 use std::io::Read;
 use std::path;
 
-use errors::*;
-use format::ChunkId;
-use format::IndexMagic;
+use crate::errors::*;
+use crate::format::ChunkId;
+use crate::format::IndexMagic;
 use zstd;
 
 use byteorder::{LittleEndian, ReadBytesExt};

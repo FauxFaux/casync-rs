@@ -11,7 +11,7 @@ use casync_format::Chunk;
 use casync_format::ChunkId;
 use reqwest::Client;
 
-use errors::*;
+use crate::errors::*;
 
 pub struct Fetcher<'c> {
     client: &'c Client,

@@ -3,6 +3,8 @@ name = "casync-format"
 version = "0.1.0"
 authors = ["Chris West (Faux) <git@goeswhere.com>"]
 
+edition = "2018"
+
 [dependencies]
 byteorder = "1"
 cast = "0.2"

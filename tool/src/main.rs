@@ -1,5 +1,3 @@
-extern crate casync_format;
-extern crate clap;
 #[macro_use]
 extern crate error_chain;
 
@@ -12,7 +10,7 @@ use std::io::Read;
 use casync_format::Chunk;
 use clap::{App, AppSettings, Arg, SubCommand};
 
-use errors::*;
+use crate::errors::*;
 
 fn takes_indexes<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
     app.arg(
