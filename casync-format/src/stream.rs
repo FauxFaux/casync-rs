@@ -1,9 +1,9 @@
 use std;
+use std::convert::TryFrom;
 use std::fmt;
 use std::io;
 use std::io::Read;
 
-use cast::usize;
 use failure::ensure;
 use failure::err_msg;
 use failure::Error;
@@ -270,7 +270,7 @@ pub fn dump_packets<R: Read>(mut from: R) -> Result<(), Error> {
         let header_format = StreamMagic::from(leu64(&mut from)?)?;
 
         let payload_len = header_size - 16;
-        let mut payload = vec![0; usize(payload_len)];
+        let mut payload = vec![0; usize::try_from(payload_len)?];
         from.read_exact(&mut payload)?;
         print!(
             "{} * {:5} | {:3} | ",
