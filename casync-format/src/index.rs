@@ -66,6 +66,12 @@ impl Chunk {
         buf.push(self.format_id());
         zstd::Decoder::new(fs::File::open(buf)?)
     }
+
+    pub fn read_from<P: AsRef<path::Path>>(&self, castr_path: P) -> io::Result<Vec<u8>> {
+        let mut buf = Vec::with_capacity(8 * 1024);
+        self.open_from(castr_path)?.read_to_end(&mut buf)?;
+        Ok(buf)
+    }
 }
 
 pub fn read_index<R: Read>(mut from: R) -> Result<(ChunkSize, Vec<Chunk>), Error> {
@@ -110,17 +116,25 @@ pub fn read_index<R: Read>(mut from: R) -> Result<(ChunkSize, Vec<Chunk>), Error
 
         // TODO: other conditions to validate we're actually at the end
         if 0 == offset && [0u8; 8] == id[0..8] {
-            let mut single_byte = [0u8; 1];
-            match from.read_exact(&mut single_byte) {
-                Err(ref e) if e.kind() == io::ErrorKind::UnexpectedEof => break,
-                _ => bail!("end of index marker, but not at end of file"),
+            if at_eof(from)? {
+                break;
             }
+            bail!("end of index marker, but not at end of file")
         }
 
         chunks.push(Chunk { offset, id });
     }
 
     Ok((chunk_size, chunks))
+}
+
+fn at_eof<R: Read>(mut from: R) -> io::Result<bool> {
+    let mut single_byte = [0u8; 1];
+    match from.read_exact(&mut single_byte) {
+        Ok(_) => Ok(false),
+        Err(ref e) if e.kind() == io::ErrorKind::UnexpectedEof => Ok(true),
+        Err(e) => Err(e),
+    }
 }
 
 fn leu64<R: Read>(mut from: R) -> io::Result<u64> {

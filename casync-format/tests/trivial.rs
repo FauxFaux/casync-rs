@@ -11,9 +11,9 @@ fn load_index() -> Result<(), Error> {
     let file = io::Cursor::new(&include_bytes!("data/trivial.caidx")[..]);
     let (_sizes, v) = casync_format::read_index(file)?;
 
-    for chunk in v {
-        println!("{:?}", chunk)
-    }
+    assert_eq!(1, v.len());
+    assert_eq!(0, v[0].offset);
+    assert_eq!([0u8; 32], v[0].id);
 
     Ok(())
 }
@@ -38,16 +38,10 @@ fn load_nums() -> Result<(), Error> {
     let file = fs::File::open("tests/data/nums.caidx").unwrap();
     let (_sizes, v) = casync_format::read_index(file)?;
 
-    let mut it = v.into_iter();
-
-    let reader = casync_format::ChunkReader::new(|| {
-        Ok(it
-            .next()
-            .map(|chunk| chunk.open_from("tests/data/nums.castr").unwrap()))
-    })
-    .unwrap();
-
-    //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
+    let reader = casync_format::FlatReader::new(
+        v.into_iter()
+            .map(|chunk| chunk.read_from("tests/data/nums.castr")),
+    );
 
     let mut paths = Vec::new();
 
