@@ -1,9 +1,9 @@
 use std::fs;
 use std::io;
-use std::path::Path;
-use std::path::PathBuf;
 use std::io::Read;
 use std::io::Write;
+use std::path::Path;
+use std::path::PathBuf;
 
 use failure::bail;
 use failure::format_err;
@@ -57,10 +57,12 @@ impl<'c> HttpCache<'c> {
             })?;
         temp.write_all(&buf)?;
 
-        // TODO: ignore already-exists errors
-        temp.persist_noclobber(&chunk_path)
-            .map_err(|e| e.error)
-            .with_context(|_| format_err!("storing downloaded chunk into: {:?}", chunk_path))?;
+        match temp.persist_noclobber(&chunk_path).map_err(|e| e.error) {
+            Ok(_) => (),
+            Err(ref e) if io::ErrorKind::AlreadyExists == e.kind() => (),
+            Err(e) => Err(e)
+                .with_context(|_| format_err!("storing downloaded chunk into: {:?}", chunk_path))?,
+        }
 
         Ok(buf)
     }
