@@ -8,10 +8,7 @@ use failure::ensure;
 use failure::err_msg;
 use failure::Error;
 
-use super::fetcher::Fetcher;
 use super::format::StreamMagic;
-use super::Chunk;
-use crate::{read_index, FlatReader};
 
 const HEADER_TAG_LEN: u64 = 16;
 const RECORD_SIZE_LIMIT: u64 = 64 * 1024;
@@ -116,48 +113,6 @@ impl ItemType {
             ItemType::File(len) => Content::File(take(len)),
             ItemType::Directory => Content::Directory,
         }
-    }
-}
-
-impl Stream<Box<dyn Read>> {
-    pub fn from_index<F: 'static + Fetcher>(
-        idx: &str,
-        fetcher: F,
-    ) -> Result<Stream<Box<dyn Read>>, Error> {
-        ensure!(
-            idx.ends_with(".caidx"),
-            "index must have a .caidx extension, not {:?}",
-            idx
-        );
-        let prefix = format!("{}.castr", &idx[..idx.len() - ".caidx".len()]);
-        Self::from_paths(idx, prefix, fetcher)
-    }
-
-    pub fn from_paths<F: 'static + Fetcher>(
-        idx: &str,
-        store: impl ToString,
-        mut fetcher: F,
-    ) -> Result<Stream<Box<dyn Read>>, Error> {
-        let (_sizes, chunks) = read_index(io::Cursor::new(fetcher.fetch(idx)?))?;
-        let store = store.to_string();
-        Ok(Self::from_chunks(chunks, move |cacnk: &str| {
-            fetcher.fetch(&format!("{}/{}", store, cacnk))
-        }))
-    }
-
-    /// `fetcher` fetches chunks, given `abcd/efg012[..]30.cacnk`.
-    pub fn from_chunks<F: 'static + Fetcher>(
-        chunks: Vec<Chunk>,
-        mut fetcher: F,
-    ) -> Stream<Box<dyn Read>> {
-        Stream::new(Box::new(FlatReader::new(chunks.into_iter().map(
-            move |c| -> Result<_, io::Error> {
-                let fetched = fetcher.fetch(&c.format_id())?;
-                let fetched = zstd::stream::decode_all(io::Cursor::new(fetched))?;
-                c.check(&fetched)?;
-                Ok(fetched)
-            },
-        ))))
     }
 }
 

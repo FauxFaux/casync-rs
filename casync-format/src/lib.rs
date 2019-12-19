@@ -1,3 +1,4 @@
+pub mod chunks;
 mod fetcher;
 mod flat;
 mod format;

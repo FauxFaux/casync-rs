@@ -4,6 +4,7 @@ use std::io::Read;
 
 use failure::Error;
 
+use casync_format::chunks::from_index;
 use casync_format::Stream;
 
 #[test]
@@ -46,7 +47,9 @@ fn two() {
 fn load_nums() -> Result<(), Error> {
     let mut paths = Vec::new();
 
-    let mut stream = Stream::from_index("tests/data/nums.caidx", |path: &str| fs::read(path))?;
+    let mut stream = Stream::new(from_index("tests/data/nums.caidx", |path: &str| {
+        fs::read(path)
+    })?);
     while let Some((path, content)) = stream.next().unwrap() {
         let names: Vec<Box<[u8]>> = path.into_iter().map(|item| item.name).collect();
 

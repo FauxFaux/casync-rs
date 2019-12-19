@@ -9,10 +9,11 @@ use failure::format_err;
 use failure::Error;
 use failure::ResultExt;
 
+use casync_format::chunks::from_paths;
 use casync_format::Stream;
 
 pub fn fast_export<W: Write>(mut into: W, castr: &str, caidx: &str) -> Result<(), Error> {
-    let mut stream = Stream::from_paths(caidx, castr, move |path: &str| fs::read(path))?;
+    let mut stream = Stream::new(from_paths(caidx, castr, move |path: &str| fs::read(path))?);
 
     while let Some(path_content) = stream
         .next()
@@ -51,7 +52,7 @@ pub fn fast_export<W: Write>(mut into: W, castr: &str, caidx: &str) -> Result<()
 }
 
 pub fn mtree<W: Write>(mut into: W, castr: &str, caidx: &str) -> Result<(), Error> {
-    let mut stream = Stream::from_paths(caidx, castr, move |path: &str| fs::read(path))?;
+    let mut stream = Stream::new(from_paths(caidx, castr, move |path: &str| fs::read(path))?);
 
     while let Some(path_content) = stream
         .next()
