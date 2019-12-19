@@ -70,6 +70,12 @@ impl Chunk {
     pub fn read_from<P: AsRef<path::Path>>(&self, castr_path: P) -> io::Result<Vec<u8>> {
         let mut buf = Vec::with_capacity(8 * 1024);
         self.open_from(castr_path)?.read_to_end(&mut buf)?;
+        let actual = digest(&buf);
+
+        if actual != self.id {
+            return Err(io::Error::new(io::ErrorKind::Other, "checksum mismatch"));
+        }
+
         Ok(buf)
     }
 }
@@ -141,4 +147,12 @@ fn leu64<R: Read>(mut from: R) -> io::Result<u64> {
     let mut buf = [0u8; 8];
     from.read_exact(&mut buf)?;
     Ok(u64::from_le_bytes(buf))
+}
+
+fn digest(data: &[u8]) -> ChunkId {
+    use sha2::Digest;
+    let digest = sha2::Sha512Trunc256::digest(data);
+    let mut id = ChunkId::default();
+    id.copy_from_slice(&digest[..]);
+    id
 }
