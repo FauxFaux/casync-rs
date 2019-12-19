@@ -32,12 +32,14 @@ pub struct Item {
     pub entry: Option<Entry>,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Entry {
     pub mode: u64,
     pub uid: u64,
     pub gid: u64,
     pub mtime: u64,
+    pub feature_flags: u64,
+    pub flags: u64,
     pub user_name: Option<Box<[u8]>>,
     pub group_name: Option<Box<[u8]>>,
 }
@@ -284,19 +286,17 @@ fn process_item<R: Read>(mut from: &mut R, path: &mut Path) -> Result<ItemType, 
 }
 
 fn load_entry<R: Read>(mut from: R) -> Result<Entry, Error> {
-    let mut entry = Entry::default();
-
-    leu64(&mut from)?; // feature_flags
-
-    entry.mode = leu64(&mut from)?;
-
-    leu64(&mut from)?; // flags
-
-    entry.uid = leu64(&mut from)?;
-    entry.gid = leu64(&mut from)?;
-    entry.mtime = leu64(&mut from)?;
-
-    Ok(entry)
+    Ok(Entry {
+        feature_flags: leu64(&mut from)?,
+        mode: leu64(&mut from)?,
+        flags: leu64(&mut from)?,
+        uid: leu64(&mut from)?,
+        gid: leu64(&mut from)?,
+        mtime: leu64(&mut from)?,
+        // these are filled in by following packets
+        user_name: None,
+        group_name: None,
+    })
 }
 
 pub fn dump_packets<R: Read>(mut from: R) -> Result<(), Error> {
