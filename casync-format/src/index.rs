@@ -1,9 +1,7 @@
 use std;
 use std::fmt;
-use std::fs;
 use std::io;
 use std::io::Read;
-use std::path;
 
 use failure::bail;
 use failure::ensure;
@@ -56,24 +54,6 @@ pub fn format_chunk_id(id: &ChunkId) -> String {
 impl Chunk {
     pub fn format_id(&self) -> String {
         format_chunk_id(&self.id)
-    }
-
-    pub fn open_from<P: AsRef<path::Path>>(
-        &self,
-        castr_path: P,
-    ) -> io::Result<zstd::Decoder<io::BufReader<fs::File>>> {
-        let mut buf = castr_path.as_ref().to_path_buf();
-        buf.push(self.format_id());
-        zstd::Decoder::new(fs::File::open(buf)?)
-    }
-
-    pub fn read_from<P: AsRef<path::Path>>(&self, castr_path: P) -> io::Result<Vec<u8>> {
-        let mut buf = Vec::with_capacity(8 * 1024);
-        self.open_from(castr_path)?.read_to_end(&mut buf)?;
-
-        self.check(&buf)?;
-
-        Ok(buf)
     }
 
     pub fn check(&self, data: &[u8]) -> io::Result<()> {
