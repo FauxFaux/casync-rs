@@ -11,24 +11,17 @@ use failure::Error;
 use failure::ResultExt;
 
 pub fn fast_export<W: Write>(mut into: W, castr: &str, caidx: &str) -> Result<(), Error> {
-    let file = fs::File::open(caidx).with_context(|_| err_msg("opening index file"))?;
+    let (_sizes, chunks) = casync_format::read_index(
+        fs::File::open(caidx).with_context(|_| err_msg("opening index file"))?,
+    )
+    .with_context(|_| err_msg("reading index file"))?;
 
-    let (_sizes, v) =
-        casync_format::read_index(file).with_context(|_| err_msg("reading index file"))?;
+    let castr = castr.to_string();
 
-    let mut it = v.into_iter();
+    let mut stream = casync_format::Stream::from_chunks(chunks, move |cachk: &str| {
+        fs::read(format!("{}/{}", castr, cachk))
+    });
 
-    let reader = casync_format::ChunkReader::new(|| {
-        Ok(match it.next() {
-            Some(chunk) => Some(chunk.open_from(castr)?),
-            None => None,
-        })
-    })
-    .with_context(|_| err_msg("initialising reader"))?;
-
-    //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
-
-    let mut stream = casync_format::Stream::new(reader);
     while let Some(path_content) = stream
         .next()
         .with_context(|_| format_err!("reading stream of index {}", caidx))?
