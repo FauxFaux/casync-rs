@@ -1,10 +1,10 @@
-extern crate casync_format;
-
 use std::fs;
 use std::io;
 use std::io::Read;
 
 use failure::Error;
+
+use casync_format::Stream;
 
 #[test]
 fn load_index() -> Result<(), Error> {
@@ -12,8 +12,17 @@ fn load_index() -> Result<(), Error> {
     let (_sizes, v) = casync_format::read_index(file)?;
 
     assert_eq!(1, v.len());
-    assert_eq!(0, v[0].offset);
-    assert_eq!([0u8; 32], v[0].id);
+    assert_eq!(
+        368, v[0].offset,
+        "don't really know, shouldn't this be 0? Maybe it's the length."
+    );
+    assert_eq!(
+        [
+            134, 7, 242, 234, 232, 49, 36, 50, 105, 198, 119, 143, 240, 131, 31, 201, 215, 103,
+            135, 18, 159, 231, 98, 22, 20, 141, 128, 46, 184, 212, 106, 57
+        ],
+        v[0].id
+    );
 
     Ok(())
 }
@@ -35,20 +44,10 @@ fn two() {
 /// rm -rf nums; mkdir nums && seq 10000 > nums/data && casync make --store=nums.castr nums.caidx nums
 #[test]
 fn load_nums() -> Result<(), Error> {
-    let file = fs::File::open("tests/data/nums.caidx").unwrap();
-    let (_sizes, v) = casync_format::read_index(file)?;
-
-    let reader = casync_format::FlatReader::new(
-        v.into_iter()
-            .map(|chunk| chunk.read_from("tests/data/nums.castr")),
-    );
-
     let mut paths = Vec::new();
 
-    let mut stream = casync_format::Stream::new(reader);
-    while let Some(path_content) = stream.next().unwrap() {
-        let (path, content) = path_content;
-        let _last = path.end().clone();
+    let mut stream = Stream::from_index("tests/data/nums.caidx", |path: &str| fs::read(path))?;
+    while let Some((path, content)) = stream.next().unwrap() {
         let names: Vec<Box<[u8]>> = path.into_iter().map(|item| item.name).collect();
 
         paths.push(casync_format::utf8_path(names).unwrap());

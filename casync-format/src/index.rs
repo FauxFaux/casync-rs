@@ -70,13 +70,20 @@ impl Chunk {
     pub fn read_from<P: AsRef<path::Path>>(&self, castr_path: P) -> io::Result<Vec<u8>> {
         let mut buf = Vec::with_capacity(8 * 1024);
         self.open_from(castr_path)?.read_to_end(&mut buf)?;
-        let actual = digest(&buf);
+
+        self.check(&buf)?;
+
+        Ok(buf)
+    }
+
+    pub fn check(&self, data: &[u8]) -> io::Result<()> {
+        let actual = digest(data);
 
         if actual != self.id {
             return Err(io::Error::new(io::ErrorKind::Other, "checksum mismatch"));
         }
 
-        Ok(buf)
+        Ok(())
     }
 }
 

@@ -1,4 +1,5 @@
 mod chunks;
+mod fetcher;
 mod format;
 mod index;
 mod stream;
