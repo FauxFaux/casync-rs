@@ -2,22 +2,20 @@ extern crate casync_format;
 
 use std::fs;
 use std::io;
-
 use std::io::Read;
 
+use failure::Error;
+
 #[test]
-fn load_index() {
+fn load_index() -> Result<(), Error> {
     let file = io::Cursor::new(&include_bytes!("data/trivial.caidx")[..]);
-    let mut v = vec![];
-    casync_format::read_index(file, |chunk| {
-        v.push(chunk);
-        Ok(())
-    })
-    .unwrap();
+    let (_sizes, v) = casync_format::read_index(file)?;
 
     for chunk in v {
         println!("{:?}", chunk)
     }
+
+    Ok(())
 }
 
 #[test]
@@ -36,14 +34,9 @@ fn two() {
 
 /// rm -rf nums; mkdir nums && seq 10000 > nums/data && casync make --store=nums.castr nums.caidx nums
 #[test]
-fn load_nums() {
+fn load_nums() -> Result<(), Error> {
     let file = fs::File::open("tests/data/nums.caidx").unwrap();
-    let mut v = vec![];
-    casync_format::read_index(file, |chunk| {
-        v.push(chunk);
-        Ok(())
-    })
-    .unwrap();
+    let (_sizes, v) = casync_format::read_index(file)?;
 
     let mut it = v.into_iter();
 
@@ -75,5 +68,6 @@ fn load_nums() {
         }
     }
 
-    assert_eq!(&["./data".to_string(), ".".to_string(),], paths.as_slice())
+    assert_eq!(&["./data".to_string(), ".".to_string(),], paths.as_slice());
+    Ok(())
 }

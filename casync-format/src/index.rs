@@ -12,10 +12,10 @@ use failure::Error;
 use crate::format::ChunkId;
 use crate::format::IndexMagic;
 
-struct ChunkSize {
-    min: u64,
-    avg: u64,
-    max: u64,
+pub struct ChunkSize {
+    pub min: u64,
+    pub avg: u64,
+    pub max: u64,
 }
 
 impl ChunkSize {
@@ -27,6 +27,7 @@ impl ChunkSize {
     }
 }
 
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub struct Chunk {
     pub offset: u64,
     pub id: ChunkId,
@@ -67,10 +68,7 @@ impl Chunk {
     }
 }
 
-pub fn read_index<R: Read, F>(mut from: R, mut into: F) -> Result<(), Error>
-where
-    F: FnMut(Chunk) -> Result<(), Error>,
-{
+pub fn read_index<R: Read>(mut from: R) -> Result<(ChunkSize, Vec<Chunk>), Error> {
     {
         let header_size = leu64(&mut from)?;
         ensure!(
@@ -86,7 +84,12 @@ where
     );
 
     leu64(&mut from)?; // feature_flags
-    ChunkSize::new(leu64(&mut from)?, leu64(&mut from)?, leu64(&mut from)?)?; // chunk_size
+    let chunk_size = {
+        let min = leu64(&mut from)?;
+        let avg = leu64(&mut from)?;
+        let max = leu64(&mut from)?;
+        ChunkSize::new(min, avg, max)?
+    };
 
     ensure!(
         std::u64::MAX == leu64(&mut from)?,
@@ -97,6 +100,8 @@ where
         IndexMagic::Table == IndexMagic::from(leu64(&mut from)?)?,
         "table magic missing"
     );
+
+    let mut chunks = Vec::with_capacity(32);
 
     loop {
         let offset = leu64(&mut from)?;
@@ -112,9 +117,10 @@ where
             }
         }
 
-        into(Chunk { offset, id })?;
+        chunks.push(Chunk { offset, id });
     }
-    Ok(())
+
+    Ok((chunk_size, chunks))
 }
 
 fn leu64<R: Read>(mut from: R) -> io::Result<u64> {

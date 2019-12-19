@@ -85,11 +85,8 @@ fn fast_export(castr: &str, caidx: &str) -> Result<(), Error> {
     let file = fs::File::open(caidx).with_context(|_| err_msg("opening index file"))?;
 
     let mut v: Vec<Chunk> = vec![];
-    casync_format::read_index(file, |chunk| {
-        v.push(chunk);
-        Ok(())
-    })
-    .with_context(|_| err_msg("reading index file"))?;
+    let (_sizes, v) =
+        casync_format::read_index(file).with_context(|_| err_msg("reading index file"))?;
 
     let mut it = v.into_iter();
 
@@ -142,12 +139,8 @@ fn fast_export(castr: &str, caidx: &str) -> Result<(), Error> {
 fn mtree(castr: &str, caidx: &str) -> Result<(), Error> {
     let file = fs::File::open(caidx).with_context(|_| err_msg("opening index file"))?;
 
-    let mut v: Vec<Chunk> = vec![];
-    casync_format::read_index(file, |chunk| {
-        v.push(chunk);
-        Ok(())
-    })
-    .with_context(|_| err_msg("reading index file"))?;
+    let (_sizes, v) =
+        casync_format::read_index(file).with_context(|_| err_msg("reading index file"))?;
 
     let mut it = v.into_iter();
 

@@ -1,6 +1,5 @@
 use std::fs;
 use std::io;
-use std::mem;
 use std::path;
 
 use casync_format::format_chunk_id;
@@ -43,15 +42,7 @@ impl<'c> Fetcher<'c> {
         if !resp.status().is_success() {
             bail!("request failed: {}", resp.status());
         }
-        let estimated_length = resp.content_length().unwrap_or(1337);
-
-        let estimated_length = estimated_length as usize / mem::size_of::<Chunk>();
-        let mut chunks = Vec::with_capacity(estimated_length);
-
-        casync_format::read_index(resp, |chunk| {
-            chunks.push(chunk);
-            Ok(())
-        })?;
+        let (_sizes, chunks) = casync_format::read_index(resp)?;
 
         Ok(chunks)
     }
