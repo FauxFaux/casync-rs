@@ -1,8 +1,8 @@
 use std::fs;
 use std::io;
+use std::io::Read;
 use std::io::Write;
 
-use casync_format::Chunk;
 use failure::bail;
 use failure::ensure;
 use failure::err_msg;
@@ -13,7 +13,6 @@ use failure::ResultExt;
 pub fn fast_export<W: Write>(mut into: W, castr: &str, caidx: &str) -> Result<(), Error> {
     let file = fs::File::open(caidx).with_context(|_| err_msg("opening index file"))?;
 
-    let mut v: Vec<Chunk> = vec![];
     let (_sizes, v) =
         casync_format::read_index(file).with_context(|_| err_msg("reading index file"))?;
 
@@ -61,6 +60,45 @@ pub fn fast_export<W: Write>(mut into: W, castr: &str, caidx: &str) -> Result<()
             casync_format::Content::Directory => {
                 ensure!(last_entry.is_dir(), "directory end for non-directory");
             }
+        }
+    }
+    Ok(())
+}
+
+pub fn mtree<W: Write>(mut into: W, castr: &str, caidx: &str) -> Result<(), Error> {
+    let file = fs::File::open(caidx).with_context(|_| err_msg("opening index file"))?;
+
+    let (_sizes, v) =
+        casync_format::read_index(file).with_context(|_| err_msg("reading index file"))?;
+
+    let mut it = v.into_iter();
+
+    let reader = casync_format::ChunkReader::new(|| {
+        Ok(match it.next() {
+            Some(chunk) => Some(chunk.open_from(castr)?),
+            None => None,
+        })
+    })
+    .with_context(|_| err_msg("initialising reader"))?;
+
+    //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
+
+    let mut stream = casync_format::Stream::new(reader);
+    while let Some(path_content) = stream
+        .next()
+        .with_context(|_| format_err!("reading stream of index {}", caidx))?
+    {
+        let (path, content) = path_content;
+        let last = path.end().clone();
+        let names: Vec<Box<[u8]>> = path.into_iter().map(|item| item.name).collect();
+        writeln!(into, "{}, {:?}", casync_format::utf8_path(names)?, last)?;
+
+        match content {
+            casync_format::Content::File(mut data) => {
+                let mut buf = Vec::new();
+                data.read_to_end(&mut buf)?;
+            }
+            casync_format::Content::Directory => {}
         }
     }
     Ok(())
