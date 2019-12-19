@@ -4,7 +4,6 @@ mod format;
 mod index;
 mod stream;
 
-pub use crate::chunks::ChunkReader;
 pub use crate::chunks::FlatReader;
 pub use crate::format::ChunkId;
 pub use crate::index::format_chunk_id;

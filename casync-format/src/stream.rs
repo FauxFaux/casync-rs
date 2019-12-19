@@ -122,17 +122,26 @@ impl ItemType {
 impl Stream<Box<dyn Read>> {
     pub fn from_index<F: 'static + Fetcher>(
         idx: &str,
-        mut fetcher: F,
+        fetcher: F,
     ) -> Result<Stream<Box<dyn Read>>, Error> {
         ensure!(
             idx.ends_with(".caidx"),
             "index must have a .caidx extension, not {:?}",
             idx
         );
-        let (_sizes, chunks) = read_index(io::Cursor::new(fetcher.fetch(idx)?))?;
         let prefix = format!("{}.castr", &idx[..idx.len() - ".caidx".len()]);
+        Self::from_paths(idx, prefix, fetcher)
+    }
+
+    pub fn from_paths<F: 'static + Fetcher>(
+        idx: &str,
+        store: impl ToString,
+        mut fetcher: F,
+    ) -> Result<Stream<Box<dyn Read>>, Error> {
+        let (_sizes, chunks) = read_index(io::Cursor::new(fetcher.fetch(idx)?))?;
+        let store = store.to_string();
         Ok(Self::from_chunks(chunks, move |cacnk: &str| {
-            fetcher.fetch(&format!("{}/{}", prefix, cacnk))
+            fetcher.fetch(&format!("{}/{}", store, cacnk))
         }))
     }
 

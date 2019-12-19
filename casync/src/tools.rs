@@ -5,22 +5,14 @@ use std::io::Write;
 
 use failure::bail;
 use failure::ensure;
-use failure::err_msg;
 use failure::format_err;
 use failure::Error;
 use failure::ResultExt;
 
+use casync_format::Stream;
+
 pub fn fast_export<W: Write>(mut into: W, castr: &str, caidx: &str) -> Result<(), Error> {
-    let (_sizes, chunks) = casync_format::read_index(
-        fs::File::open(caidx).with_context(|_| err_msg("opening index file"))?,
-    )
-    .with_context(|_| err_msg("reading index file"))?;
-
-    let castr = castr.to_string();
-
-    let mut stream = casync_format::Stream::from_chunks(chunks, move |cachk: &str| {
-        fs::read(format!("{}/{}", castr, cachk))
-    });
+    let mut stream = Stream::from_paths(caidx, castr, move |path: &str| fs::read(path))?;
 
     while let Some(path_content) = stream
         .next()
@@ -59,24 +51,8 @@ pub fn fast_export<W: Write>(mut into: W, castr: &str, caidx: &str) -> Result<()
 }
 
 pub fn mtree<W: Write>(mut into: W, castr: &str, caidx: &str) -> Result<(), Error> {
-    let file = fs::File::open(caidx).with_context(|_| err_msg("opening index file"))?;
+    let mut stream = Stream::from_paths(caidx, castr, move |path: &str| fs::read(path))?;
 
-    let (_sizes, v) =
-        casync_format::read_index(file).with_context(|_| err_msg("reading index file"))?;
-
-    let mut it = v.into_iter();
-
-    let reader = casync_format::ChunkReader::new(|| {
-        Ok(match it.next() {
-            Some(chunk) => Some(chunk.open_from(castr)?),
-            None => None,
-        })
-    })
-    .with_context(|_| err_msg("initialising reader"))?;
-
-    //    io::copy(&mut reader, &mut fs::File::create("a").unwrap()).unwrap();
-
-    let mut stream = casync_format::Stream::new(reader);
     while let Some(path_content) = stream
         .next()
         .with_context(|_| format_err!("reading stream of index {}", caidx))?
