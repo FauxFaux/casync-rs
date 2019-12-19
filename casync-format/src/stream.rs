@@ -3,8 +3,6 @@ use std::fmt;
 use std::io;
 use std::io::Read;
 
-use byteorder::ReadBytesExt;
-use byteorder::LE;
 use cast::usize;
 use failure::ensure;
 use failure::err_msg;
@@ -361,5 +359,7 @@ pub fn utf8_path(
 }
 
 fn leu64<R: Read>(mut from: R) -> io::Result<u64> {
-    from.read_u64::<LE>()
+    let mut buf = [0u8; 8];
+    from.read_exact(&mut buf)?;
+    Ok(u64::from_le_bytes(buf))
 }

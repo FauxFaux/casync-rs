@@ -6,7 +6,6 @@ authors = ["Chris West (Faux) <git@goeswhere.com>"]
 edition = "2018"
 
 [dependencies]
-byteorder = "1"
 cast = "0.2"
 failure = "0.1"
 zstd = "0.5"

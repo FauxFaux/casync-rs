@@ -119,7 +119,7 @@ impl<'c> Fetcher<'c> {
         F: FnMut(
             &'r [Vec<u8>],
             casync_format::Entry,
-            Option<Box<io::Read>>,
+            Option<Box<dyn io::Read>>,
         ) -> casync_format::Result<()>,
     {
         let reader = casync_format::ChunkReader::new(|| {
@@ -131,7 +131,7 @@ impl<'c> Fetcher<'c> {
         .with_context(|_| err_msg("initialising reader"))?;
 
         casync_format::read_stream(reader, |v, e, r| {
-            into(v, e, r.map(|t| Box::new(t) as Box<io::Read>))?;
+            into(v, e, r.map(|t| Box::new(t) as Box<dyn io::Read>))?;
             Ok(())
         })
         .with_context(|_| err_msg("reading stream"))
