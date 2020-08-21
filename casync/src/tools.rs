@@ -3,11 +3,11 @@ use std::io;
 use std::io::Read;
 use std::io::Write;
 
-use failure::bail;
-use failure::ensure;
-use failure::format_err;
-use failure::Error;
-use failure::ResultExt;
+use anyhow::bail;
+use anyhow::ensure;
+use anyhow::format_err;
+use anyhow::Context;
+use anyhow::Error;
 
 use casync_format::chunks::from_paths;
 use casync_format::Stream;
@@ -17,7 +17,7 @@ pub fn fast_export<W: Write>(mut into: W, castr: &str, caidx: &str) -> Result<()
 
     while let Some(path_content) = stream
         .next()
-        .with_context(|_| format_err!("reading stream of index {}", caidx))?
+        .with_context(|| format_err!("reading stream of index {}", caidx))?
     {
         let (path, content) = path_content;
         let last = path.end().clone();
@@ -56,7 +56,7 @@ pub fn mtree<W: Write>(mut into: W, castr: &str, caidx: &str) -> Result<(), Erro
 
     while let Some(path_content) = stream
         .next()
-        .with_context(|_| format_err!("reading stream of index {}", caidx))?
+        .with_context(|| format_err!("reading stream of index {}", caidx))?
     {
         let (path, content) = path_content;
         let last = path.end().clone();

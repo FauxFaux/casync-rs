@@ -4,10 +4,10 @@ use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 
-use failure::bail;
-use failure::format_err;
-use failure::Error;
-use failure::ResultExt;
+use anyhow::bail;
+use anyhow::format_err;
+use anyhow::Context;
+use anyhow::Error;
 use reqwest::Client;
 use reqwest::IntoUrl;
 
@@ -51,7 +51,7 @@ impl<'c> HttpCache<'c> {
         let buf = resp.bytes().await?.to_vec();
 
         let mut temp =
-            tempfile_fast::PersistableTempFile::new_in(&self.local_store).with_context(|_| {
+            tempfile_fast::PersistableTempFile::new_in(&self.local_store).with_context(|| {
                 format_err!("creating temporary directory inside {:?}", self.local_store)
             })?;
         temp.write_all(&buf)?;
@@ -60,7 +60,7 @@ impl<'c> HttpCache<'c> {
             Ok(_) => (),
             Err(ref e) if io::ErrorKind::AlreadyExists == e.kind() => (),
             Err(e) => Err(e)
-                .with_context(|_| format_err!("storing downloaded chunk into: {:?}", chunk_path))?,
+                .with_context(|| format_err!("storing downloaded chunk into: {:?}", chunk_path))?,
         }
 
         Ok(buf)

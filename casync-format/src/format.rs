@@ -1,5 +1,5 @@
-use failure::bail;
-use failure::Error;
+use anyhow::bail;
+use anyhow::Error;
 
 const ENTRY: u64 = 0x1396fabcea5bbb51;
 const USER: u64 = 0xf453131aaeeaccb3;

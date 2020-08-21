@@ -4,9 +4,9 @@ use std::fmt;
 use std::io;
 use std::io::Read;
 
-use failure::ensure;
-use failure::err_msg;
-use failure::Error;
+use anyhow::anyhow;
+use anyhow::ensure;
+use anyhow::Error;
 
 use super::format::StreamMagic;
 
@@ -211,14 +211,14 @@ fn process_item<R: Read>(mut from: &mut R, path: &mut Path) -> Result<ItemType, 
             StreamMagic::User => {
                 path.end_entry()
                     .as_mut()
-                    .ok_or_else(|| err_msg("user without entry"))?
+                    .ok_or_else(|| anyhow!("user without entry"))?
                     .user_name =
                     Some(read_string_record(header_size, &mut from)?.into_boxed_slice());
             }
             StreamMagic::Group => {
                 path.end_entry()
                     .as_mut()
-                    .ok_or_else(|| err_msg("group without entry"))?
+                    .ok_or_else(|| anyhow!("group without entry"))?
                     .group_name =
                     Some(read_string_record(header_size, &mut from)?.into_boxed_slice());
             }

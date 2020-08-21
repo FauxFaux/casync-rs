@@ -7,6 +7,6 @@ license = "MIT OR Apache-2.0"
 edition = "2018"
 
 [dependencies]
-failure = "0.1"
+anyhow = "1"
 sha2 = "0.9"
 zstd = "0.5"

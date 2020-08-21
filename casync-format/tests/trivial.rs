@@ -2,7 +2,7 @@ use std::fs;
 use std::io;
 use std::io::Read;
 
-use failure::Error;
+use anyhow::Error;
 
 use casync_format::chunks::from_index;
 use casync_format::Stream;

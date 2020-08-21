@@ -1,10 +1,10 @@
 use std::io;
 
+use anyhow::Error;
 use clap::App;
 use clap::AppSettings;
 use clap::Arg;
 use clap::SubCommand;
-use failure::Error;
 
 fn takes_indexes<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
     app.arg(

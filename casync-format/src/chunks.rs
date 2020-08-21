@@ -2,8 +2,8 @@ use std;
 use std::io;
 use std::io::Read;
 
-use failure::ensure;
-use failure::Error;
+use anyhow::ensure;
+use anyhow::Error;
 
 use super::fetcher::Fetcher;
 use super::read_index;
