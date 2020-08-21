@@ -1,6 +1,5 @@
 use std::fs;
 use std::io;
-use std::io::Read;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
@@ -25,7 +24,7 @@ impl<'c> HttpCache<'c> {
         })
     }
 
-    pub fn load<U: IntoUrl>(&self, castr: U, cacnk: &str) -> Result<Vec<u8>, Error> {
+    pub async fn load<U: IntoUrl>(&self, castr: U, cacnk: &str) -> Result<Vec<u8>, Error> {
         let mut chunk_path = self.local_store.to_path_buf();
         chunk_path.push(cacnk);
 
@@ -40,7 +39,7 @@ impl<'c> HttpCache<'c> {
 
         fs::create_dir_all(chunk_path.parent().unwrap())?;
 
-        let mut resp = self.client.get(cacnk.clone()).send()?;
+        let resp = self.client.get(cacnk.clone()).send().await?;
 
         // TODO: give up again if the file already exists
 
@@ -48,8 +47,8 @@ impl<'c> HttpCache<'c> {
             bail!("couldn't download chunk: {}\nurl: {}", resp.status(), cacnk);
         }
 
-        let mut buf = Vec::with_capacity(resp.content_length().unwrap_or(8 * 1024) as usize);
-        resp.read_to_end(&mut buf)?;
+        // TODO: chunks() to file, or read.await
+        let buf = resp.bytes().await?.to_vec();
 
         let mut temp =
             tempfile_fast::PersistableTempFile::new_in(&self.local_store).with_context(|_| {

@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 casync-format = { path = "../casync-format" }
 failure = "0.1"
-reqwest = "0.9"
+reqwest = "0.10"
 tempfile-fast = "0.3"
 
 [dependencies.clap]

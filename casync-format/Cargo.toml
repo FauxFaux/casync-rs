@@ -8,5 +8,5 @@ edition = "2018"
 
 [dependencies]
 failure = "0.1"
-sha2 = "0.8"
+sha2 = "0.9"
 zstd = "0.5"
