@@ -1,53 +1,58 @@
 use std::io;
 
 use anyhow::Error;
-use clap::App;
-use clap::AppSettings;
-use clap::Arg;
-use clap::SubCommand;
+use clap::Args;
+use clap::Parser;
+use clap::Subcommand;
 
-fn takes_indexes<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
-    app.arg(
-        Arg::with_name("CAIDX")
-            .help("the index file(s) to inspect")
-            .required(true)
-            .multiple(true),
-    )
-    .arg(
-        Arg::with_name("store")
-            .help("the castore which the indexes reference")
-            .long("store")
-            .required(true)
-            .takes_value(true),
-    )
+#[derive(Parser)]
+#[command(name = "casync-rs")]
+struct Cli {
+    #[command(subcommand)]
+    command: Command,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    /// fast-export some archives
+    FastExport {
+        #[command(flatten)]
+        indexes: Indexes,
+
+        /// prefix for ref; index of argument appended
+        #[arg(long)]
+        ref_prefix: String,
+    },
+
+    /// dump data about some archives
+    Mtree {
+        #[command(flatten)]
+        indexes: Indexes,
+    },
+}
+
+#[derive(Args)]
+struct Indexes {
+    /// the index file(s) to inspect
+    #[arg(required = true)]
+    caidx: Vec<String>,
+
+    /// the castore which the indexes reference
+    #[arg(long)]
+    store: String,
 }
 
 fn main() -> Result<(), Error> {
-    let matches = App::new("casync-rs")
-        .setting(AppSettings::SubcommandRequired)
-        .subcommand(takes_indexes(
-            SubCommand::with_name("fast-export")
-                .about("fast-export some archives")
-                .arg(
-                    Arg::with_name("ref-prefix")
-                        .help("prefix for ref; index of argument appended")
-                        .long("ref-prefix")
-                        .required(true)
-                        .takes_value(true),
-                ),
-        ))
-        .subcommand(takes_indexes(
-            SubCommand::with_name("mtree").about("dump data about some archives"),
-        ))
-        .get_matches();
+    let cli = Cli::parse();
 
-    match matches.subcommand() {
-        ("fast-export", Some(matches)) => {
-            let castr = matches.value_of("store").unwrap();
-            let ref_prefix = matches.value_of("ref-prefix").unwrap();
+    match cli.command {
+        Command::FastExport {
+            indexes,
+            ref_prefix,
+        } => {
             println!("feature done");
 
-            for (nth, caidx) in matches.values_of("CAIDX").unwrap().enumerate() {
+            for (nth, caidx) in indexes.caidx.iter().enumerate() {
                 println!("# {}", caidx);
                 println!("commit {}{}", ref_prefix, nth);
 
@@ -59,18 +64,16 @@ fn main() -> Result<(), Error> {
                 println!();
                 println!("deleteall");
 
-                casync::tools::fast_export(io::stdout(), castr, caidx)?;
+                casync::tools::fast_export(io::stdout(), &indexes.store, caidx)?;
             }
 
             println!("done");
         }
-        ("mtree", Some(matches)) => {
-            let castr = matches.value_of("store").unwrap();
-            for caidx in matches.values_of("CAIDX").unwrap() {
-                casync::tools::mtree(io::stdout(), castr, caidx)?;
+        Command::Mtree { indexes } => {
+            for caidx in &indexes.caidx {
+                casync::tools::mtree(io::stdout(), &indexes.store, caidx)?;
             }
         }
-        _ => unreachable!(),
     }
 
     Ok(())
