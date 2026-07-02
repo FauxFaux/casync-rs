@@ -8,5 +8,5 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1"
-sha2 = "0.9"
+sha2 = "0.11"
 zstd = "0.5"

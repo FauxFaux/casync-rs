@@ -138,7 +138,7 @@ fn leu64<R: Read>(mut from: R) -> io::Result<u64> {
 
 fn digest(data: &[u8]) -> ChunkId {
     use sha2::Digest;
-    let digest = sha2::Sha512Trunc256::digest(data);
+    let digest = sha2::Sha512_256::digest(data);
     let mut id = ChunkId::default();
     id.copy_from_slice(&digest[..]);
     id
