@@ -128,7 +128,7 @@ impl<R: Read> Stream<R> {
         self.inner
     }
 
-    pub fn next(&mut self) -> Result<Option<(Path, Content<R>)>, Error> {
+    pub fn next(&mut self) -> Result<Option<(Path, Content<'_, R>)>, Error> {
         if self.path.is_empty() {
             return Ok(None);
         }
