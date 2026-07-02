@@ -11,10 +11,10 @@ use super::fetcher::Fetcher;
 use super::read_index;
 
 /// guess the `.castr` (relative) path from the `.caidx` path, and fetch both
-pub fn from_index<'i, F: 'static + Fetcher>(
-    idx: &'i str,
+pub fn from_index<F: 'static + Fetcher>(
+    idx: &str,
     fetcher: F,
-) -> Result<impl Read + use<'i, F>, Error> {
+) -> Result<impl Read, Error> {
     ensure!(
         idx.ends_with(".caidx"),
         "index must have a .caidx extension, not {:?}",
@@ -25,8 +25,8 @@ pub fn from_index<'i, F: 'static + Fetcher>(
 }
 
 /// use the explicit `caidx` and `castr` paths, and fetch both
-pub fn from_paths<'s, F: 'static + Fetcher, TS: ToString>(
-    idx: &'s str,
+pub fn from_paths<F: 'static + Fetcher, TS: ToString>(
+    idx: &str,
     store: TS,
     mut fetcher: F,
 ) -> Result<impl Read, Error> {
