@@ -4,9 +4,9 @@ use std::fmt;
 use std::io;
 use std::io::Read;
 
+use anyhow::Error;
 use anyhow::anyhow;
 use anyhow::ensure;
-use anyhow::Error;
 
 use super::format::StreamMagic;
 

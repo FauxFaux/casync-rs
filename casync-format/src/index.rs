@@ -3,9 +3,9 @@ use std::fmt;
 use std::io;
 use std::io::Read;
 
+use anyhow::Error;
 use anyhow::bail;
 use anyhow::ensure;
-use anyhow::Error;
 
 use crate::format::ChunkId;
 use crate::format::IndexMagic;

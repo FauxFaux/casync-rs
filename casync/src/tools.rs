@@ -3,14 +3,14 @@ use std::io;
 use std::io::Read;
 use std::io::Write;
 
+use anyhow::Context;
+use anyhow::Error;
 use anyhow::bail;
 use anyhow::ensure;
 use anyhow::format_err;
-use anyhow::Context;
-use anyhow::Error;
 
-use casync_format::chunks::from_paths;
 use casync_format::Stream;
+use casync_format::chunks::from_paths;
 
 pub fn fast_export<W: Write>(mut into: W, castr: &str, caidx: &str) -> Result<(), Error> {
     let mut stream = Stream::new(from_paths(caidx, castr, move |path: &str| fs::read(path))?);

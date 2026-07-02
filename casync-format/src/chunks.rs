@@ -2,16 +2,19 @@ use std;
 use std::io;
 use std::io::Read;
 
-use anyhow::ensure;
 use anyhow::Error;
+use anyhow::ensure;
 
-use super::fetcher::Fetcher;
-use super::read_index;
 use super::Chunk;
 use super::FlatReader;
+use super::fetcher::Fetcher;
+use super::read_index;
 
 /// guess the `.castr` (relative) path from the `.caidx` path, and fetch both
-pub fn from_index<F: 'static + Fetcher>(idx: &str, fetcher: F) -> Result<impl Read, Error> {
+pub fn from_index<'i, F: 'static + Fetcher>(
+    idx: &'i str,
+    fetcher: F,
+) -> Result<impl Read + use<'i, F>, Error> {
     ensure!(
         idx.ends_with(".caidx"),
         "index must have a .caidx extension, not {:?}",
@@ -22,9 +25,9 @@ pub fn from_index<F: 'static + Fetcher>(idx: &str, fetcher: F) -> Result<impl Re
 }
 
 /// use the explicit `caidx` and `castr` paths, and fetch both
-pub fn from_paths<F: 'static + Fetcher>(
-    idx: &str,
-    store: impl ToString,
+pub fn from_paths<'s, F: 'static + Fetcher, TS: ToString>(
+    idx: &'s str,
+    store: TS,
     mut fetcher: F,
 ) -> Result<impl Read, Error> {
     let (_sizes, chunks) = read_index(io::Cursor::new(fetcher.fetch(idx)?))?;

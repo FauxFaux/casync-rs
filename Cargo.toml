@@ -3,3 +3,4 @@ members = [
     "casync-format",
     "casync",
 ]
+resolver = "3"

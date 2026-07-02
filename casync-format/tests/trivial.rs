@@ -4,8 +4,8 @@ use std::io::Read;
 
 use anyhow::Error;
 
-use casync_format::chunks::from_index;
 use casync_format::Stream;
+use casync_format::chunks::from_index;
 
 #[test]
 fn load_index() -> Result<(), Error> {

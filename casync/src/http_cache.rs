@@ -4,10 +4,10 @@ use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
 
-use anyhow::bail;
-use anyhow::format_err;
 use anyhow::Context;
 use anyhow::Error;
+use anyhow::bail;
+use anyhow::format_err;
 use reqwest::Client;
 use reqwest::IntoUrl;
 
